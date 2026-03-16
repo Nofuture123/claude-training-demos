@@ -704,11 +704,11 @@ const STEPS = [
   },
   // Step 6: Rules
   {
-    desc: 'Rules 加载—— .claude/settings.json 中的规则。开机完成！',
+    desc: 'Rules 加载—— .claude/rules/*.md 岗位规则文件。开机完成！',
     phase: 'boot', phaseLabel: 'BOOT',
     tokens: 10500, pct: 18,
     source: 'rules',
-    ctx: { type: 'rules', label: 'Rules (settings.json)', size: '~500', big: false, locked: true },
+    ctx: { type: 'rules', label: 'Rules (.claude/rules/*.md)', size: '~500', big: false, locked: true },
   },
   // Step 7: AI reply 1
   {
