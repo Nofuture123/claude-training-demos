@@ -815,7 +815,6 @@ const SOURCE_GROUPS = [
       { id: 'global-md', label: '全局 CLAUDE.md', color: 'var(--c-global-md)', icon: ICONS.globalMd },
       { id: 'project-md', label: '项目 CLAUDE.md', color: 'var(--c-project-md)', icon: ICONS.projectMd },
       { id: 'rules', label: 'Rules', color: 'var(--c-rules)', icon: ICONS.rules },
-      { id: 'skills', label: 'Skills', color: 'var(--c-skills)', icon: ICONS.skills },
     ]
   },
   {
@@ -824,13 +823,6 @@ const SOURCE_GROUPS = [
     items: [
       { id: 'read', label: 'Read 工具', color: 'var(--c-read)', icon: ICONS.read },
       { id: 'tool', label: 'Bash / Edit', color: 'var(--c-tool)', icon: ICONS.tool },
-    ]
-  },
-  {
-    label: 'MCP 外部连接',
-    icon: '🔌',
-    items: [
-      { id: 'mcp', label: 'MCP', color: 'var(--c-mcp)', icon: ICONS.mcp },
     ]
   },
 ];
@@ -950,31 +942,23 @@ const STEPS = [
     source: 'tool',
     ctx: { type: 'tool', label: 'Bash 输出: 到课率统计脚本结果', size: '~7K', big: true },
   },
-  // Step 14: MCP
-  {
-    desc: 'MCP 拉取外部数据——大众点评评价 + 钉钉考勤数据涌入',
-    phase: 'tool', phaseLabel: 'TOOL',
-    tokens: 46000, pct: 74,
-    source: 'mcp',
-    ctx: { type: 'mcp', label: 'MCP: 大众点评评价 + 钉钉考勤数据', size: '~14K!', big: false, huge: true },
-  },
-  // Step 15: Skills
-  {
-    desc: 'Skills 加载 /commit 技能指令',
-    phase: 'tool', phaseLabel: 'TOOL',
-    tokens: 49000, pct: 80,
-    source: 'skills',
-    ctx: { type: 'skills', label: 'Skill: /commit 提交规范', size: '~3K', big: false },
-  },
-  // Step 16: AI reply 3
+  // Step 14: AI reply 3
   {
     desc: 'AI 综合所有信息生成回复',
     phase: 'chat', phaseLabel: 'CHAT',
-    tokens: 53000, pct: 87,
-    chat: { role: 'ai', text: '到课率统计完成。新翼 91.2%、顺联 87.5%、悦然 89.3%。已同步钉钉推送，点评好评率 4.8 分...' },
-    ctx: { type: 'ai', label: 'AI 回复: 综合分析 + 钉钉推送', size: '~4K', big: false },
+    tokens: 36000, pct: 65,
+    chat: { role: 'ai', text: '到课率统计完成。新翼 91.2%、顺联 87.5%、悦然 89.3%。报告已生成...' },
+    ctx: { type: 'ai', label: 'AI 回复: 到课率分析报告', size: '~4K', big: false },
   },
-  // Step 17: Warning
+  // Step 15: More conversation to fill window
+  {
+    desc: '继续聊——帮写暑假班方案、朋友圈文案、家长回复……窗口越来越满',
+    phase: 'chat', phaseLabel: 'CHAT',
+    tokens: 52000, pct: 88,
+    chat: { role: 'user', text: '再帮我写一份暑假班推广方案，要发朋友圈的' },
+    ctx: { type: 'user', label: '用户消息 + AI 回复: 暑假班方案...', size: '~20K', big: false, huge: true },
+  },
+  // Step 16: Warning
   {
     desc: '窗口快满了！容量条变红——接下来会发生什么？',
     phase: 'overflow', phaseLabel: 'OVERFLOW',
