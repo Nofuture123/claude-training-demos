@@ -1287,9 +1287,9 @@ function goToStep(step) {
     doCompact();
   }
 
-  // Boot complete overlay — only show, never auto-remove (user clicks to dismiss)
+  // Boot complete overlay — show immediately, user must click to dismiss
   if (s.bootComplete) {
-    setTimeout(() => bootOverlay.classList.add('visible'), 600);
+    bootOverlay.classList.add('visible');
   }
 
   // Summary
