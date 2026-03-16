@@ -774,7 +774,7 @@
     </div>
     <div class="point">
       <div class="num">2</div>
-      <div><strong>常驻层永远不消失</strong><br>System Prompt、Memory、CLAUDE.md 带锁标记，即使窗口满了被清理，它们也会被保护。这就是为什么 CLAUDE.md 这么重要。</div>
+      <div><strong>常驻层不会丢失</strong><br>System Prompt、Memory、CLAUDE.md 带锁标记，即使窗口压缩，这些内容也会被重新加载回来。这就是为什么 CLAUDE.md 这么重要。</div>
     </div>
     <div class="point">
       <div class="num">3</div>
@@ -847,7 +847,7 @@ const STEPS = [
   },
   // Step 1: user message
   {
-    desc: '你发了一条消息，它进入上下文窗口',
+    desc: '你发了一条消息——实际上系统上下文是同时组装的，这里分步展示方便理解',
     phase: 'chat', phaseLabel: 'CHAT',
     tokens: 120, pct: 2,
     chat: { role: 'user', text: '帮我写一份乐高 EV3 课的课后反馈，给家长看的' },
@@ -887,7 +887,7 @@ const STEPS = [
   },
   // Step 6: Memory  ← # auto memory (最后加载)
   {
-    desc: 'Memory 最后加载——Claude 跨对话自动积累的记忆。开机完成！',
+    desc: 'Memory 也在开机时加载——Claude 跨对话自动积累的记忆。开机完成！',
     phase: 'boot', phaseLabel: 'BOOT',
     tokens: 11300, pct: 18,
     source: 'memory',
