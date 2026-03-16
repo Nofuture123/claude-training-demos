@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day02 · AI 的"脑子"是怎么运作的</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg-deep: #0a0e1a;
+    --bg-card: #111827;
+    --bg-slot: #1a2235;
+    --border-dim: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-dim: #475569;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-purple: #8b5cf6;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-pink: #ec4899;
+    --accent-orange: #f97316;
+    --accent-indigo: #6366f1;
+    --accent-teal: #14b8a6;
+    --accent-lime: #84cc16;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%; left: -20%;
+    width: 140%; height: 140%;
+    background:
+      radial-gradient(ellipse 600px 400px at 20% 30%, rgba(59,130,246,0.07), transparent),
+      radial-gradient(ellipse 500px 500px at 80% 60%, rgba(139,92,246,0.05), transparent),
+      radial-gradient(ellipse 400px 300px at 50% 80%, rgba(6,182,212,0.04), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ========== Layout ========== */
+  .stage {
+    position: relative;
+    z-index: 1;
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 20px 36px;
+    gap: 12px;
+  }
+
+  /* ========== Header ========== */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .phase-tag {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.4s;
+  }
+  .phase-tag.boot { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+  .phase-tag.chat { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+  .phase-tag.tool { background: rgba(16,185,129,0.15); color: var(--accent-emerald); }
+  .phase-tag.overflow { background: rgba(244,63,94,0.15); color: var(--accent-rose); }
+  .phase-tag.manage { background: rgba(6,182,212,0.15); color: var(--accent-cyan); }
+  .step-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    background: var(--bg-card);
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-dim);
+  }
+  .step-indicator .current { color: var(--accent-cyan); font-weight: 600; }
+
+  /* ========== Main ========== */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 28px;
+    min-height: 0;
+  }
+
+  /* ========== Left: Context Window ========== */
+  .window-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .window-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .window-label h2 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .capacity-bar-wrap {
+    flex: 1;
+    height: 5px;
+    background: var(--bg-slot);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .capacity-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1), background 0.4s;
+  }
+  .capacity-bar.warn { background: linear-gradient(90deg, var(--accent-amber), var(--accent-orange)); }
+  .capacity-bar.danger { background: linear-gradient(90deg, var(--accent-orange), var(--accent-rose)); }
+  .capacity-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 55px;
+    text-align: right;
+    transition: color 0.3s;
+  }
+  .capacity-text.warn { color: var(--accent-amber); }
+  .capacity-text.danger { color: var(--accent-rose); }
+
+  .context-window {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.4s;
+  }
+  .context-window.danger-border {
+    border-color: rgba(244,63,94,0.3);
+    box-shadow: 0 0 20px rgba(244,63,94,0.05);
+  }
+  .context-window::before {
+    content: '上下文窗口 · Context Window · 200K tokens ≈ 一本300页的书';
+    position: absolute;
+    top: 10px; left: 14px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    letter-spacing: 0.3px;
+    z-index: 2;
+  }
+
+  .window-inner {
+    flex: 1;
+    padding: 34px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ========== Context blocks ========== */
+  .ctx-block {
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12px;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.45s, transform 0.45s cubic-bezier(0.4,0,0.2,1), filter 0.4s, height 0.5s, padding 0.5s, margin 0.5s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .ctx-block.visible { opacity: 1; transform: translateY(0); }
+  .ctx-block.fading { opacity: 0.12; transform: scale(0.97); filter: blur(1.5px); }
+  .ctx-block.evicted {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.9);
+    height: 0 !important;
+    padding: 0 11px !important;
+    margin: 0 !important;
+    overflow: hidden;
+  }
+
+  .ctx-icon {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .ctx-content { flex: 1; min-width: 0; }
+  .ctx-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ctx-text {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badge-permanent {
+    position: absolute;
+    top: 6px; right: 8px;
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-dim);
+    letter-spacing: 0.4px;
+  }
+
+  /* --- Block color themes --- */
+  .ctx-block.system { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.18); }
+  .ctx-block.system .ctx-icon { background: rgba(139,92,246,0.2); }
+  .ctx-block.system .ctx-label { color: var(--accent-purple); }
+
+  .ctx-block.memory { background: rgba(236,72,153,0.07); border: 1px solid rgba(236,72,153,0.18); }
+  .ctx-block.memory .ctx-icon { background: rgba(236,72,153,0.2); }
+  .ctx-block.memory .ctx-label { color: var(--accent-pink); }
+
+  .ctx-block.global-md { background: rgba(6,182,212,0.07); border: 1px solid rgba(6,182,212,0.18); }
+  .ctx-block.global-md .ctx-icon { background: rgba(6,182,212,0.2); }
+  .ctx-block.global-md .ctx-label { color: var(--accent-cyan); }
+
+  .ctx-block.project-md { background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.18); }
+  .ctx-block.project-md .ctx-icon { background: rgba(59,130,246,0.2); }
+  .ctx-block.project-md .ctx-label { color: var(--accent-blue); }
+
+  .ctx-block.rules { background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.18); }
+  .ctx-block.rules .ctx-icon { background: rgba(16,185,129,0.2); }
+  .ctx-block.rules .ctx-label { color: var(--accent-emerald); }
+
+  .ctx-block.human-msg { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.14); }
+  .ctx-block.human-msg .ctx-icon { background: rgba(245,158,11,0.18); }
+  .ctx-block.human-msg .ctx-label { color: var(--accent-amber); }
+
+  .ctx-block.ai-msg { background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.14); }
+  .ctx-block.ai-msg .ctx-icon { background: rgba(99,102,241,0.15); }
+  .ctx-block.ai-msg .ctx-label { color: var(--accent-indigo); }
+
+  .ctx-block.file-read { background: rgba(132,204,22,0.06); border: 1px solid rgba(132,204,22,0.14); }
+  .ctx-block.file-read .ctx-icon { background: rgba(132,204,22,0.18); }
+  .ctx-block.file-read .ctx-label { color: var(--accent-lime); }
+
+  .ctx-block.tool-call { background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.14); }
+  .ctx-block.tool-call .ctx-icon { background: rgba(249,115,22,0.18); }
+  .ctx-block.tool-call .ctx-label { color: var(--accent-orange); }
+
+  .ctx-block.mcp { background: rgba(20,184,166,0.06); border: 1px solid rgba(20,184,166,0.14); }
+  .ctx-block.mcp .ctx-icon { background: rgba(20,184,166,0.18); }
+  .ctx-block.mcp .ctx-label { color: var(--accent-teal); }
+
+  .ctx-block.skill { background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.14); }
+  .ctx-block.skill .ctx-icon { background: rgba(236,72,153,0.18); }
+  .ctx-block.skill .ctx-label { color: var(--accent-pink); }
+
+  .ctx-block.compact-block { background: rgba(6,182,212,0.06); border: 1px solid rgba(6,182,212,0.14); }
+  .ctx-block.compact-block .ctx-icon { background: rgba(6,182,212,0.18); }
+  .ctx-block.compact-block .ctx-label { color: var(--accent-cyan); }
+
+  /* ========== Right: Narration ========== */
+  .narration-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .identity-cards {
+    display: flex;
+    gap: 8px;
+  }
+  .id-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+  }
+  .id-avatar {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+  }
+  .id-card.human .id-avatar { background: rgba(245,158,11,0.15); }
+  .id-card.ai .id-avatar { background: rgba(99,102,241,0.15); }
+  .id-info h3 { font-size: 13px; font-weight: 600; }
+  .id-info p { font-size: 11px; color: var(--text-secondary); }
+
+  .narration-box {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  .narration-title {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .narration-body {
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--text-secondary);
+  }
+  .narration-body strong { color: var(--text-primary); font-weight: 600; }
+  .narration-body .analogy {
+    display: block;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(245,158,11,0.06);
+    border-left: 3px solid var(--accent-amber);
+    border-radius: 0 8px 8px 0;
+    font-size: 12.5px;
+    color: var(--accent-amber);
+    line-height: 1.6;
+  }
+  .narration-body .key-point {
+    display: block;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(59,130,246,0.06);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 0 8px 8px 0;
+    font-size: 12.5px;
+    color: var(--accent-cyan);
+    line-height: 1.6;
+  }
+  .narration-body .warning {
+    display: block;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(244,63,94,0.06);
+    border-left: 3px solid var(--accent-rose);
+    border-radius: 0 8px 8px 0;
+    font-size: 12.5px;
+    color: var(--accent-rose);
+    line-height: 1.6;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text-dim);
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.02);
+    transition: all 0.3s;
+  }
+  .legend-item.active { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ========== Footer ========== */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .footer-hint kbd {
+    display: inline-block;
+    padding: 2px 7px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    font-size: 10px;
+    margin: 0 1px;
+  }
+  .nav-buttons { display: flex; gap: 8px; }
+  .nav-btn {
+    padding: 9px 22px;
+    border-radius: 10px;
+    border: 1px solid var(--border-dim);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: 'Noto Sans SC', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--accent-blue); color: var(--text-primary); background: rgba(59,130,246,0.08); }
+  .nav-btn.primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+    border-color: transparent;
+    color: white;
+    font-weight: 600;
+  }
+  .nav-btn.primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; filter: none !important; }
+
+  /* Overlays */
+  .eviction-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-rose), transparent);
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s;
+    top: 32px;
+    box-shadow: 0 0 12px rgba(244,63,94,0.4);
+  }
+  .eviction-line.active { opacity: 1; }
+  .eviction-label {
+    position: absolute;
+    top: 22px; right: 14px;
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-rose);
+    z-index: 11;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .eviction-label.active { opacity: 1; }
+
+  .compact-flash {
+    position: absolute;
+    inset: 0;
+    background: rgba(6,182,212,0.06);
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    border-radius: 14px;
+  }
+  .compact-flash.active { animation: flashPulse 0.8s ease-out; }
+  @keyframes flashPulse { 0% { opacity: 1; } 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="header">
+    <h1>🧠 AI 的"脑子"是怎么运作的</h1>
+    <div class="header-right">
+      <div class="phase-tag boot" id="phaseTag">准备</div>
+      <div class="step-indicator">
+        步骤 <span class="current" id="stepNum">0</span> / <span id="stepTotal">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="window-panel">
+      <div class="window-label">
+        <h2>📦 上下文窗口</h2>
+        <div class="capacity-bar-wrap">
+          <div class="capacity-bar" id="capacityBar"></div>
+        </div>
+        <div class="capacity-text" id="capacityText">0%</div>
+      </div>
+      <div class="context-window" id="contextWindow">
+        <div class="eviction-line" id="evictionLine"></div>
+        <div class="eviction-label" id="evictionLabel">⚠ 窗口已满，旧内容被卸载</div>
+        <div class="compact-flash" id="compactFlash"></div>
+        <div class="window-inner" id="windowInner"></div>
+      </div>
+    </div>
+
+    <div class="narration-panel">
+      <div class="identity-cards">
+        <div class="id-card human">
+          <div class="id-avatar">👤</div>
+          <div class="id-info">
+            <h3>人类（你）</h3>
+            <p>发指令、提问、纠正</p>
+          </div>
+        </div>
+        <div class="id-card ai">
+          <div class="id-avatar">🤖</div>
+          <div class="id-info">
+            <h3>Claude（AI）</h3>
+            <p>每次对话从零"开机"</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend" id="legend">
+        <div class="legend-item" data-type="system"><div class="legend-dot" style="background:var(--accent-purple)"></div>系统指令</div>
+        <div class="legend-item" data-type="memory"><div class="legend-dot" style="background:var(--accent-pink)"></div>记忆</div>
+        <div class="legend-item" data-type="global-md"><div class="legend-dot" style="background:var(--accent-cyan)"></div>全局MD</div>
+        <div class="legend-item" data-type="project-md"><div class="legend-dot" style="background:var(--accent-blue)"></div>项目MD</div>
+        <div class="legend-item" data-type="rules"><div class="legend-dot" style="background:var(--accent-emerald)"></div>Rules</div>
+        <div class="legend-item" data-type="human-msg"><div class="legend-dot" style="background:var(--accent-amber)"></div>你说的</div>
+        <div class="legend-item" data-type="ai-msg"><div class="legend-dot" style="background:var(--accent-indigo)"></div>AI回复</div>
+        <div class="legend-item" data-type="file-read"><div class="legend-dot" style="background:var(--accent-lime)"></div>读文件</div>
+        <div class="legend-item" data-type="tool-call"><div class="legend-dot" style="background:var(--accent-orange)"></div>工具调用</div>
+        <div class="legend-item" data-type="mcp"><div class="legend-dot" style="background:var(--accent-teal)"></div>MCP</div>
+        <div class="legend-item" data-type="skill"><div class="legend-dot" style="background:var(--accent-pink)"></div>Skill</div>
+      </div>
+
+      <div class="narration-box">
+        <div class="narration-title" id="narrationTitle">准备开始</div>
+        <div class="narration-body" id="narrationBody">
+          点击 <strong>「下一步」</strong> 开始演示 Claude 每次打开对话时的"开机过程"。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-hint">
+      <kbd>→</kbd> 下一步 &nbsp; <kbd>←</kbd> 上一步 &nbsp; <kbd>R</kbd> 重置
+    </div>
+    <div class="nav-buttons">
+      <button class="nav-btn" id="btnPrev" disabled onclick="prevStep()">← 上一步</button>
+      <button class="nav-btn primary" id="btnNext" onclick="nextStep()">下一步 →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Block definitions
+// ============================================================
+const B = {
+  'system':     { type:'system',     icon:'⚙️', label:'System Prompt · 系统指令',       text:'Claude 的底层人格、能力边界、安全规则', permanent:true },
+  'memory':     { type:'memory',     icon:'🧠', label:'Auto-Memory · 自动记忆',         text:'你喜欢表格汇报、你是管理层、偏好简洁风格', permanent:true },
+  'global-md':  { type:'global-md',  icon:'👤', label:'~/.claude/CLAUDE.md · 个人设定',  text:'我是穹狼科创管理层，汇报偏好简洁表格，用中文', permanent:true },
+  'project-md': { type:'project-md', icon:'📋', label:'项目 CLAUDE.md · 公司规则',       text:'穹狼 STEM 教育 / 品牌调性 / NEVER：不提学费、不提竞品', permanent:true },
+  'rules':      { type:'rules',      icon:'📐', label:'.claude/rules/ · 岗位规则',       text:'教学-课后反馈 / 销售-家长沟通 / 管理-周报月报', permanent:true },
+
+  'human1':     { type:'human-msg',  icon:'💬', label:'你说', text:'"帮我写一份乐高课的课后反馈，小明今天搭建很积极"' },
+  'ai1':        { type:'ai-msg',     icon:'🤖', label:'Claude 回复', text:'[课后反馈：温暖语气、标准格式、不含负面词]' },
+
+  'human2':     { type:'human-msg',  icon:'💬', label:'你说', text:'"帮我看看上周的招生数据"' },
+  'file1':      { type:'file-read',  icon:'📄', label:'Read · 读取文件', text:'本周招生数据.csv — 35KB 内容被装入窗口' },
+  'ai2':        { type:'ai-msg',     icon:'🤖', label:'Claude 回复', text:'[三校区招生数据表格 + 同比分析]' },
+
+  'human3':     { type:'human-msg',  icon:'💬', label:'你说', text:'"帮我跑一下这周各校区的到课率统计"' },
+  'tool1':      { type:'tool-call',  icon:'🔧', label:'Tool · Bash 工具调用', text:'执行 python analyze.py → 返回统计结果（结果也占窗口）' },
+  'tool2':      { type:'tool-call',  icon:'🔧', label:'Tool · Edit 工具调用', text:'修改 report-template.md → 写入本周数据' },
+  'ai3':        { type:'ai-msg',     icon:'🤖', label:'Claude 回复', text:'[到课率报告已生成，A校区92%、B校区87%、C校区95%]' },
+
+  'human4':     { type:'human-msg',  icon:'💬', label:'你说', text:'"帮我查一下本周家长在大众点评上的评价"' },
+  'mcp1':       { type:'mcp',        icon:'🔌', label:'MCP · 网页抓取服务', text:'调用 ScraperAPI → 抓取大众点评页面 → 返回评价内容' },
+  'mcp2':       { type:'mcp',        icon:'🔌', label:'MCP · 钉钉 Webhook', text:'调用钉钉 API → 将分析报告推送到工作群' },
+  'ai4':        { type:'ai-msg',     icon:'🤖', label:'Claude 回复', text:'[5条新评价摘要 + 情感分析 + 已推送钉钉群]' },
+
+  'human5':     { type:'human-msg',  icon:'💬', label:'你说', text:'"/commit 提交这次的数据更新"' },
+  'skill1':     { type:'skill',      icon:'⚡', label:'Skill · /commit 技能激活', text:'技能指令被加载到窗口 → 引导 Claude 执行 git 提交流程' },
+  'tool3':      { type:'tool-call',  icon:'🔧', label:'Tool · Bash 工具调用', text:'git add + git commit → 提交成功' },
+  'ai5':        { type:'ai-msg',     icon:'🤖', label:'Claude 回复', text:'[已提交：更新本周招生数据与到课率报告]' },
+
+  'human6':     { type:'human-msg',  icon:'💬', label:'你说', text:'"继续帮我写暑假班推广方案……"' },
+  'ai6':        { type:'ai-msg',     icon:'🤖', label:'Claude 回复', text:'[暑假班推广文案、朋友圈素材、活动方案……]' },
+
+  'compact':    { type:'compact-block', icon:'📝', label:'/compact 压缩摘要', text:'[所有对话压缩为摘要：反馈已写、数据已分析、报告已推送钉钉]' },
+};
+
+// ============================================================
+// Steps
+// ============================================================
+const PERM = ['system','memory','global-md','project-md','rules'];
+
+const steps = [
+  // 0: Intro
+  { title:'准备开始', phase:'boot', phaseLabel:'准备',
+    body:`点击 <strong>「下一步」</strong> 开始演示 Claude 每次打开对话时的"开机过程"——它的脑子里会按顺序加载什么，对话中又会塞进哪些东西。`,
+    blocks:[], capacity:0 },
+
+  // 1: System
+  { title:'① 系统指令加载', phase:'boot', phaseLabel:'开机',
+    body:`Claude 开机第一步：加载 <strong>System Prompt（系统指令）</strong>。<br><br>这是 Anthropic 写的底层指令——告诉 Claude 它是谁、有什么能力、哪些事不能做。<span class="key-point">💡 你控制不了这部分，但它决定了 Claude 的"基本人格"。</span>`,
+    blocks:['system'], capacity:8 },
+
+  // 2: Memory
+  { title:'② 自动记忆加载', phase:'boot', phaseLabel:'开机',
+    body:`接下来加载 <strong>Auto-memory</strong>（~/.claude/memory.md）。<br><br>这是 Claude 在之前的对话中<strong>自动积累</strong>的对你的了解——你喜欢表格、你是管理层、你偏好简洁风格……<span class="analogy">🦞 类比：同事跟你久了，知道你的习惯——不用每次都说。</span>`,
+    blocks:['system','memory'], capacity:12 },
+
+  // 3: Global MD
+  { title:'③ 全局 CLAUDE.md 加载', phase:'boot', phaseLabel:'开机',
+    body:`然后加载<strong>个人设定</strong>（~/.claude/CLAUDE.md）。<br><br>你自己写的——身份、偏好、通用规则。不管打开哪个项目都生效。<span class="analogy">🦞 类比：你的工牌——走到哪儿都知道你是谁。</span>`,
+    blocks:['system','memory','global-md'], capacity:18 },
+
+  // 4: Project MD
+  { title:'④ 项目 CLAUDE.md 加载', phase:'boot', phaseLabel:'开机',
+    body:`加载<strong>项目规则</strong>（项目根目录/CLAUDE.md）。<br><br>团队一起写的——公司信息、品牌调性、NEVER 规则。所有人都遵守同一套规范。<span class="analogy">🦞 类比：穹狼员工手册——不管谁来上班都按这个来。</span>`,
+    blocks:[...PERM.slice(0,4)], capacity:26 },
+
+  // 5: Rules
+  { title:'⑤ 岗位规则加载', phase:'boot', phaseLabel:'开机完成',
+    body:`最后加载<strong>分类细则</strong>（.claude/rules/*.md）——老师的课后反馈规范、销售的家长沟通话术、管理层的周报格式。<span class="key-point">💡 到这里"开机"完成了！以上 5 层<strong>每次对话都自动加载，永不卸载</strong>，是 Claude 的"底色"。</span>`,
+    blocks:[...PERM], capacity:33 },
+
+  // 6: First chat
+  { title:'⑥ 第一轮对话', phase:'chat', phaseLabel:'对话中',
+    body:`你说：<strong>"帮我写一份乐高课的课后反馈"</strong><br><br>你的消息 + Claude 的回复，都被装进窗口。Claude 的回复综合了窗口里的<strong>所有内容</strong>：规则 + 你的指令。<span class="key-point">💡 注意右侧图例：黄色是你说的，紫蓝色是 AI 回复。两者都占窗口空间。</span>`,
+    blocks:[...PERM, 'human1','ai1'], capacity:41 },
+
+  // 7: File read
+  { title:'⑦ 读取文件', phase:'tool', phaseLabel:'工具使用',
+    body:`你说"帮我看看上周的招生数据"，Claude 调用 <strong>Read 工具</strong>读取了 CSV 文件。<br><br><strong>文件的全部内容都被塞进了窗口</strong>——一个 35KB 的表格可能占掉好几千 tokens。<span class="warning">⚠ 大文件是窗口空间的"大户"！读一份 100 页的 PDF 可能直接占掉一半窗口。</span>`,
+    blocks:[...PERM, 'human1','ai1', 'human2','file1','ai2'], capacity:52 },
+
+  // 8: Tool calls
+  { title:'⑧ 工具调用', phase:'tool', phaseLabel:'工具使用',
+    body:`你让 Claude 跑数据统计。它调用了 <strong>Bash</strong> 执行 Python 脚本，又用 <strong>Edit</strong> 修改了报告模板。<br><br>每次工具调用的<strong>输入（指令）和输出（结果）</strong>都会塞进窗口。一条命令看着不大，但跑 10 次就很可观了。<span class="key-point">💡 工具 = Claude 的"手"。它不只是聊天，还能执行操作。但每个操作都占窗口。</span>`,
+    blocks:[...PERM, 'human1','ai1', 'human2','file1','ai2', 'human3','tool1','tool2','ai3'], capacity:65 },
+
+  // 9: MCP
+  { title:'⑨ MCP 外部服务调用', phase:'tool', phaseLabel:'MCP',
+    body:`你让 Claude 查大众点评的评价。它通过 <strong>MCP（Model Context Protocol）</strong>调用了外部服务：<br><br>· <strong>ScraperAPI</strong> —— 抓取网页内容<br>· <strong>钉钉 Webhook</strong> —— 推送消息到工作群<br><br>MCP 就是 Claude 连接外部世界的"插座"——接上不同的服务，Claude 就有了不同的超能力。<span class="key-point">💡 MCP 返回的数据（网页内容、API 响应）也全部装入窗口。抓一个网页可能就是几万 tokens。</span>`,
+    blocks:[...PERM, 'human1','ai1', 'human2','file1','ai2', 'human3','tool1','tool2','ai3', 'human4','mcp1','mcp2','ai4'], capacity:80 },
+
+  // 10: Skills
+  { title:'⑩ Skill 技能调用', phase:'tool', phaseLabel:'Skill',
+    body:`你输入 <strong>/commit</strong>，触发了一个 <strong>Skill（技能）</strong>。<br><br>Skill 是预设的"工作流模板"——比如 /commit 会自动引导 Claude 检查改动、写提交信息、执行 git 命令。<strong>Skill 的完整指令也会被加载到窗口里。</strong><span class="key-point">💡 Skill = 可复用的专家流程。一键触发，Claude 就知道该按什么步骤来。但技能指令本身也占空间。</span>`,
+    blocks:[...PERM, 'human1','ai1', 'human2','file1','ai2', 'human3','tool1','tool2','ai3', 'human4','mcp1','mcp2','ai4', 'human5','skill1','tool3','ai5'], capacity:88 },
+
+  // 11: Window full
+  { title:'⑪ 窗口快满了！', phase:'overflow', phaseLabel:'接近上限',
+    body:`聊了这么多，窗口已经用了 93%！你还想继续写推广方案……<br><br>你开始感觉 Claude "变笨了"——忘了前面说过的话，回复质量下降。<span class="warning">⚠ 不是 Claude 变笨了，是它的"短期记忆"快满了。文件、工具输出、MCP 返回的数据都是大户。</span>`,
+    blocks:[...PERM, 'human1','ai1', 'human2','file1','ai2', 'human3','tool1','tool2','ai3', 'human4','mcp1','mcp2','ai4', 'human5','skill1','tool3','ai5', 'human6','ai6'], capacity:93 },
+
+  // 12: Eviction
+  { title:'⑫ 早期内容被"卸载"', phase:'overflow', phaseLabel:'卸载中',
+    body:`窗口满了，最早的对话、文件内容、工具输出开始被<strong>卸载</strong>——腾位置给新内容。<br><br><strong>但注意看：</strong>5 层规则（系统指令、Memory、CLAUDE.md、Rules）<strong>全部保留，一个都没丢！</strong><span class="key-point">💡 这就是核心：<strong>聊天记录、文件、工具输出都会丢，但规则永远在。</strong></span>`,
+    blocks:[...PERM, 'human1','ai1', 'human2','file1','ai2', 'human3','tool1','tool2','ai3', 'human4','mcp1','mcp2','ai4', 'human5','skill1','tool3','ai5', 'human6','ai6'],
+    capacity:95, eviction:true,
+    evictIds:['human1','ai1','human2','file1','ai2','human3','tool1'] },
+
+  // 13: /compact
+  { title:'⑬ /compact 整理记忆', phase:'manage', phaseLabel:'记忆管理',
+    body:`跑 <strong>/compact</strong>，Claude 把之前的所有对话、文件、工具输出<strong>压缩成一段摘要</strong>，腾出大量窗口空间。<br><br>压缩后：细节没了，但关键结论保留了。规则层完全不受影响。<span class="analogy">🦞 类比：记笔记——忙了一整天，晚上把要点记下来，细节可以忘。但手册（CLAUDE.md）一直在桌上。</span>`,
+    blocks:[...PERM, 'compact'], capacity:38, compact:true },
+
+  // 14: Summary
+  { title:'总结：什么东西在占你的窗口？', phase:'manage', phaseLabel:'总结',
+    body:`<strong>窗口里装的远不只是聊天记录：</strong><br><br>
+    · 💬 你说的话 + 🤖 AI 的回复<br>
+    · 📄 读取的文件内容（大户！）<br>
+    · 🔧 工具调用的输入和输出<br>
+    · 🔌 MCP 返回的外部数据（网页、API）<br>
+    · ⚡ Skill 技能的完整指令<br><br>
+    <strong>以上全部会被卸载 ❌</strong><br><br>
+    <strong>永远不会被卸载的 ✅：</strong><br>
+    · ⚙️ 系统指令 · 🧠 Memory · 👤 全局MD · 📋 项目MD · 📐 Rules<br><br>
+    <span class="key-point">💡 核心结论：重要的东西写进 CLAUDE.md 和 rules，不要只口头说。<br>口头说的会被"遗忘"，写进手册的永远都在。这就是"养龙虾"的核心。</span>` ,
+    blocks:[...PERM, 'compact'], capacity:38 },
+];
+
+// ============================================================
+// State & DOM
+// ============================================================
+let currentStep = 0;
+const $ = id => document.getElementById(id);
+const [$stepNum,$stepTotal,$capacityBar,$capacityText,$windowInner,$narrationTitle,$narrationBody,$btnPrev,$btnNext,$evictionLine,$evictionLabel,$compactFlash,$phaseTag] =
+  ['stepNum','stepTotal','capacityBar','capacityText','windowInner','narrationTitle','narrationBody','btnPrev','btnNext','evictionLine','evictionLabel','compactFlash','phaseTag'].map($);
+
+$stepTotal.textContent = steps.length - 1;
+
+// Track which legend types have appeared
+const seenTypes = new Set();
+
+function updateLegend(blockIds) {
+  blockIds.forEach(id => { if (B[id]) seenTypes.add(B[id].type); });
+  document.querySelectorAll('.legend-item').forEach(el => {
+    el.classList.toggle('active', seenTypes.has(el.dataset.type));
+  });
+}
+
+function renderStep(idx) {
+  const s = steps[idx];
+  $stepNum.textContent = idx;
+  $narrationTitle.innerHTML = s.title;
+  $narrationBody.innerHTML = s.body;
+
+  // Phase tag
+  $phaseTag.className = 'phase-tag ' + s.phase;
+  $phaseTag.textContent = s.phaseLabel;
+
+  // Capacity
+  $capacityBar.style.width = s.capacity + '%';
+  $capacityText.textContent = s.capacity + '%';
+  $capacityBar.classList.toggle('warn', s.capacity > 70 && s.capacity <= 88);
+  $capacityBar.classList.toggle('danger', s.capacity > 88);
+  $capacityText.classList.toggle('warn', s.capacity > 70 && s.capacity <= 88);
+  $capacityText.classList.toggle('danger', s.capacity > 88);
+
+  // Window border
+  $('contextWindow').classList.toggle('danger-border', s.capacity > 88);
+
+  // Eviction
+  $evictionLine.classList.toggle('active', !!s.eviction);
+  $evictionLabel.classList.toggle('active', !!s.eviction);
+
+  // Compact flash
+  if (s.compact) {
+    $compactFlash.classList.add('active');
+    setTimeout(() => $compactFlash.classList.remove('active'), 900);
+  }
+
+  // Blocks
+  const existing = Array.from($windowInner.children).map(el => el.dataset.id);
+  const target = s.blocks;
+  const evict = s.evictIds || [];
+
+  // Remove non-target, non-evict
+  existing.forEach(id => {
+    if (!target.includes(id) && !evict.includes(id)) {
+      const el = $windowInner.querySelector(`[data-id="${id}"]`);
+      if (el) { el.classList.remove('visible'); el.classList.add('evicted'); setTimeout(() => el.remove(), 550); }
+    }
+  });
+
+  // Evict
+  evict.forEach((id, i) => {
+    const el = $windowInner.querySelector(`[data-id="${id}"]`);
+    if (el) {
+      setTimeout(() => {
+        el.classList.add('fading');
+        setTimeout(() => { el.classList.add('evicted'); setTimeout(() => el.remove(), 550); }, 250);
+      }, i * 120);
+    }
+  });
+
+  // Add new
+  target.forEach((id, i) => {
+    if (!$windowInner.querySelector(`[data-id="${id}"]`) && !evict.includes(id)) {
+      const def = B[id];
+      const el = document.createElement('div');
+      el.className = `ctx-block ${def.type}`;
+      el.dataset.id = id;
+      el.innerHTML = `
+        <div class="ctx-icon">${def.icon}</div>
+        <div class="ctx-content">
+          <div class="ctx-label">${def.label}</div>
+          <div class="ctx-text">${def.text}</div>
+        </div>
+        ${def.permanent ? '<span class="badge-permanent">🔒 常驻</span>' : ''}
+      `;
+      $windowInner.appendChild(el);
+      requestAnimationFrame(() => setTimeout(() => el.classList.add('visible'), 40 + i * 60));
+    } else {
+      const el = $windowInner.querySelector(`[data-id="${id}"]`);
+      if (el && !evict.includes(id)) { el.classList.remove('fading','evicted'); el.classList.add('visible'); }
+    }
+  });
+
+  updateLegend(target);
+
+  $btnPrev.disabled = idx === 0;
+  $btnNext.textContent = idx === steps.length - 1 ? '✓ 演示结束' : '下一步 →';
+  $btnNext.disabled = idx === steps.length - 1;
+}
+
+function nextStep() { if (currentStep < steps.length - 1) { currentStep++; renderStep(currentStep); } }
+function prevStep() { if (currentStep > 0) { currentStep--; $windowInner.innerHTML = ''; renderStep(currentStep); } }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextStep(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevStep(); }
+  if (e.key === 'r' || e.key === 'R') { currentStep = 0; seenTypes.clear(); $windowInner.innerHTML = ''; renderStep(0); }
+});
+
+renderStep(0);
+</script>
+</body>
+</html>
