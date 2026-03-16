@@ -144,6 +144,26 @@
     color: var(--text-dim);
     margin-bottom: 8px;
   }
+  .source-group {
+    margin-bottom: 6px;
+  }
+  .source-group-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    padding: 6px 10px 3px;
+    opacity: 0.6;
+  }
+  .source-group-label .group-icon {
+    margin-right: 4px;
+    font-size: 10px;
+  }
+  .source-group + .source-group {
+    border-top: 1px solid var(--border-dim);
+    padding-top: 6px;
+  }
   .source-item {
     display: flex;
     align-items: center;
@@ -641,18 +661,38 @@ const ICONS = {
   lock: `<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>`,
 };
 
-// ===== Source definitions =====
-const SOURCES = [
-  { id: 'system', label: 'System Prompt', color: 'var(--c-system)', icon: ICONS.system },
-  { id: 'memory', label: 'Memory', color: 'var(--c-memory)', icon: ICONS.memory },
-  { id: 'global-md', label: '全局 CLAUDE.md', color: 'var(--c-global-md)', icon: ICONS.globalMd },
-  { id: 'project-md', label: '项目 CLAUDE.md', color: 'var(--c-project-md)', icon: ICONS.projectMd },
-  { id: 'rules', label: 'Rules', color: 'var(--c-rules)', icon: ICONS.rules },
-  { id: 'read', label: 'Read 工具', color: 'var(--c-read)', icon: ICONS.read },
-  { id: 'tool', label: 'Bash / Edit', color: 'var(--c-tool)', icon: ICONS.tool },
-  { id: 'mcp', label: 'MCP', color: 'var(--c-mcp)', icon: ICONS.mcp },
-  { id: 'skills', label: 'Skills', color: 'var(--c-skills)', icon: ICONS.skills },
+// ===== Source definitions (grouped) =====
+const SOURCE_GROUPS = [
+  {
+    label: '提示词加载',
+    icon: '📄',
+    items: [
+      { id: 'system', label: 'System Prompt', color: 'var(--c-system)', icon: ICONS.system },
+      { id: 'memory', label: 'MEMORY.md', color: 'var(--c-memory)', icon: ICONS.memory },
+      { id: 'global-md', label: '全局 CLAUDE.md', color: 'var(--c-global-md)', icon: ICONS.globalMd },
+      { id: 'project-md', label: '项目 CLAUDE.md', color: 'var(--c-project-md)', icon: ICONS.projectMd },
+      { id: 'rules', label: 'Rules', color: 'var(--c-rules)', icon: ICONS.rules },
+      { id: 'skills', label: 'Skills', color: 'var(--c-skills)', icon: ICONS.skills },
+    ]
+  },
+  {
+    label: '工具调用',
+    icon: '🔧',
+    items: [
+      { id: 'read', label: 'Read 工具', color: 'var(--c-read)', icon: ICONS.read },
+      { id: 'tool', label: 'Bash / Edit', color: 'var(--c-tool)', icon: ICONS.tool },
+    ]
+  },
+  {
+    label: 'MCP 外部连接',
+    icon: '🔌',
+    items: [
+      { id: 'mcp', label: 'MCP', color: 'var(--c-mcp)', icon: ICONS.mcp },
+    ]
+  },
 ];
+// Flat list for lookups
+const SOURCES = SOURCE_GROUPS.flatMap(g => g.items);
 
 // ===== Step definitions =====
 const STEPS = [
@@ -832,15 +872,24 @@ const summaryOverlay = document.getElementById('summaryOverlay');
 
 // ===== Init =====
 function init() {
-  // Build source list
-  SOURCES.forEach(s => {
-    const el = document.createElement('div');
-    el.className = 'source-item';
-    el.id = `source-${s.id}`;
-    el.innerHTML = `<span class="dot" style="background:${s.color};color:${s.color}"></span>
-      <span class="icon-svg" style="color:${s.color}">${s.icon}</span>
-      <span>${s.label}</span>`;
-    panelSources.appendChild(el);
+  // Build source list with groups
+  SOURCE_GROUPS.forEach(group => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'source-group';
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'source-group-label';
+    labelDiv.innerHTML = `<span class="group-icon">${group.icon}</span>${group.label}`;
+    groupDiv.appendChild(labelDiv);
+    group.items.forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'source-item';
+      el.id = `source-${s.id}`;
+      el.innerHTML = `<span class="dot" style="background:${s.color};color:${s.color}"></span>
+        <span class="icon-svg" style="color:${s.color}">${s.icon}</span>
+        <span>${s.label}</span>`;
+      groupDiv.appendChild(el);
+    });
+    panelSources.appendChild(groupDiv);
   });
 
   // Build queue bar (20 cells for 20 steps)
