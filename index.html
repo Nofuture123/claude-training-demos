@@ -1287,11 +1287,9 @@ function goToStep(step) {
     doCompact();
   }
 
-  // Boot complete overlay
+  // Boot complete overlay — only show, never auto-remove (user clicks to dismiss)
   if (s.bootComplete) {
     setTimeout(() => bootOverlay.classList.add('visible'), 600);
-  } else {
-    bootOverlay.classList.remove('visible');
   }
 
   // Summary
@@ -1432,13 +1430,28 @@ function rebuildToStep(targetStep) {
   contextContainer.scrollTop = contextContainer.scrollHeight;
 }
 
+// ===== Helper: dismiss any visible overlay =====
+function dismissOverlay() {
+  if (bootOverlay.classList.contains('visible')) {
+    bootOverlay.classList.remove('visible');
+    return true;
+  }
+  if (summaryOverlay.classList.contains('visible')) {
+    summaryOverlay.classList.remove('visible');
+    return true;
+  }
+  return false;
+}
+
 // ===== Keyboard & click =====
 document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight' || e.key === ' ') {
     e.preventDefault();
+    if (dismissOverlay()) return;
     if (currentStep < STEPS.length - 1) goToStep(currentStep + 1);
   } else if (e.key === 'ArrowLeft') {
     e.preventDefault();
+    if (dismissOverlay()) return;
     if (currentStep > 0) rebuildToStep(currentStep - 1);
   } else if (e.key === 'r' || e.key === 'R') {
     e.preventDefault();
@@ -1447,15 +1460,7 @@ document.addEventListener('keydown', e => {
 });
 
 document.addEventListener('click', e => {
-  // Dismiss overlays first
-  if (bootOverlay.classList.contains('visible')) {
-    bootOverlay.classList.remove('visible');
-    return;
-  }
-  if (summaryOverlay.classList.contains('visible')) {
-    summaryOverlay.classList.remove('visible');
-    return;
-  }
+  if (dismissOverlay()) return;
   if (currentStep < STEPS.length - 1) goToStep(currentStep + 1);
 });
 
