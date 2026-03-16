@@ -305,9 +305,25 @@
   }
   .ctx-block .block-label {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .ctx-block .block-label .label-title {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+  }
+  .ctx-block .block-preview {
+    display: block;
+    font-size: 9px;
+    opacity: 0.55;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    line-height: 1.3;
   }
   .ctx-block .block-size {
     font-family: 'JetBrains Mono', monospace;
@@ -720,43 +736,43 @@ const STEPS = [
   },
   // Step 2: System Prompt
   {
-    desc: 'System Prompt 加载——这是 Anthropic 写给 Claude 的"出厂指令"',
+    desc: 'System Prompt 加载——Anthropic 写的"出厂指令"，对用户完全隐藏',
     phase: 'boot', phaseLabel: 'BOOT',
     tokens: 4200, pct: 6,
     source: 'system',
-    ctx: { type: 'system', label: 'System Prompt', size: '~4K', big: false, locked: true },
+    ctx: { type: 'system', label: 'System Prompt', preview: '(Anthropic 编写，对用户隐藏，不可修改)', size: '~4K', big: false, locked: true },
   },
-  // Step 3: Memory
+  // Step 3: Global CLAUDE.md  ← # claudeMd
   {
-    desc: 'Memory 加载——Claude 自己记住的笔记',
+    desc: '全局 CLAUDE.md 加载——你写给所有项目的协作规范',
     phase: 'boot', phaseLabel: 'BOOT',
-    tokens: 5000, pct: 8,
-    source: 'memory',
-    ctx: { type: 'memory', label: 'MEMORY.md (Auto Memory)', size: '~800', big: false, locked: true },
-  },
-  // Step 4: Global CLAUDE.md
-  {
-    desc: '全局 CLAUDE.md 加载——Rocky 写给所有项目的协作规范',
-    phase: 'boot', phaseLabel: 'BOOT',
-    tokens: 8500, pct: 14,
+    tokens: 8000, pct: 12,
     source: 'global-md',
-    ctx: { type: 'global-md', label: '全局 CLAUDE.md (协作规范)', size: '~3.5K', big: true, locked: true },
+    ctx: { type: 'global-md', label: '# claudeMd → 全局 CLAUDE.md', preview: '"永远用中文沟通，不客套不废话，简洁为主……"', size: '~3.5K', big: true, locked: true },
   },
-  // Step 5: Project CLAUDE.md
+  // Step 4: Project CLAUDE.md  ← # claudeMd (project)
   {
     desc: '项目 CLAUDE.md 加载——这个项目专属的指令',
     phase: 'boot', phaseLabel: 'BOOT',
-    tokens: 10000, pct: 17,
+    tokens: 10000, pct: 16,
     source: 'project-md',
-    ctx: { type: 'project-md', label: '项目 CLAUDE.md (内训项目)', size: '~1.5K', big: false, locked: true },
+    ctx: { type: 'project-md', label: '# claudeMd → 项目 CLAUDE.md', preview: '"穹狼科创 STEM 教育，三校区，培训对象零基础……"', size: '~1.5K', big: false, locked: true },
   },
-  // Step 6: Rules
+  // Step 5: Rules  ← .claude/rules/
   {
-    desc: 'Rules 加载—— .claude/rules/*.md 岗位规则文件。开机完成！',
+    desc: 'Rules 加载——按岗位分的规则文件',
     phase: 'boot', phaseLabel: 'BOOT',
-    tokens: 10500, pct: 18,
+    tokens: 10500, pct: 17,
     source: 'rules',
-    ctx: { type: 'rules', label: 'Rules (.claude/rules/*.md)', size: '~500', big: false, locked: true },
+    ctx: { type: 'rules', label: 'Rules (.claude/rules/*.md)', preview: '"课后反馈用温暖语气，不含负面评价……"', size: '~500', big: false, locked: true },
+  },
+  // Step 6: Memory  ← # auto memory (最后加载)
+  {
+    desc: 'Memory 最后加载——Claude 跨对话自动积累的记忆。开机完成！',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 11300, pct: 18,
+    source: 'memory',
+    ctx: { type: 'memory', label: '# auto memory → MEMORY.md', preview: '"Rocky 是少儿编程机构创始人，偏好简洁汇报……"', size: '~800', big: false, locked: true },
   },
   // Step 7: AI reply 1
   {
@@ -943,7 +959,8 @@ function addCtxBlock(cfg) {
     lockHtml = `<span class="lock-icon" style="color:currentColor">${ICONS.lock}</span>`;
   }
 
-  el.innerHTML = `${lockHtml}<span class="block-label">${cfg.label}</span><span class="block-size">${cfg.size}</span><div class="shield-overlay"></div>`;
+  const previewHtml = cfg.preview ? `<span class="block-preview">${cfg.preview}</span>` : '';
+  el.innerHTML = `${lockHtml}<span class="block-label"><span class="label-title">${cfg.label}</span>${previewHtml}</span><span class="block-size">${cfg.size}</span><div class="shield-overlay"></div>`;
   el.dataset.locked = cfg.locked ? '1' : '0';
   el.dataset.type = cfg.type;
   el.dataset.step = currentStep;
@@ -1243,7 +1260,8 @@ function rebuildToStep(targetStep) {
       else if (cfg.big) classes += ' big';
       el.className = classes;
       let lockHtml = cfg.locked ? `<span class="lock-icon" style="color:currentColor">${ICONS.lock}</span>` : '';
-      el.innerHTML = `${lockHtml}<span class="block-label">${cfg.label}</span><span class="block-size">${cfg.size}</span><div class="shield-overlay"></div>`;
+      const prevHtml = cfg.preview ? `<span class="block-preview">${cfg.preview}</span>` : '';
+      el.innerHTML = `${lockHtml}<span class="block-label"><span class="label-title">${cfg.label}</span>${prevHtml}</span><span class="block-size">${cfg.size}</span><div class="shield-overlay"></div>`;
       el.dataset.locked = cfg.locked ? '1' : '0';
       el.dataset.type = cfg.type;
       el.dataset.step = i;
