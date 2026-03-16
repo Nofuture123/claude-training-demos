@@ -766,23 +766,31 @@ const STEPS = [
     chat: { role: 'user', text: '帮我看看上周的招生数据，文件在 Outputs/招生数据/2026-03-W2.xlsx' },
     ctx: { type: 'user', label: '用户消息: "帮我看看上周的招生数据..."', size: '180', big: false },
   },
-  // Step 9: Read tool
+  // Step 9: Write Python script
   {
-    desc: 'Read 工具加载文件——35KB 的表格数据涌入上下文！这是右栏看不到的',
+    desc: 'Excel 不能直接 Read——Claude 先写一段 Python 脚本来读取 xlsx',
+    phase: 'tool', phaseLabel: 'TOOL',
+    tokens: 16000, pct: 28,
+    source: 'tool',
+    ctx: { type: 'tool', label: 'Edit: 写入 analyze_enrollment.py (读取xlsx脚本)', size: '~3K', big: false },
+  },
+  // Step 10: Bash run Python
+  {
+    desc: 'Bash 执行 Python 脚本——35KB 的表格数据以运行结果的形式涌入上下文！',
     phase: 'tool', phaseLabel: 'TOOL',
     tokens: 22000, pct: 40,
-    source: 'read',
-    ctx: { type: 'read', label: '文件内容: 2026-03-W2.xlsx (招生数据)', size: '35KB!', big: false, huge: true },
+    source: 'tool',
+    ctx: { type: 'tool', label: 'Bash 输出: python analyze_enrollment.py → 招生数据', size: '35KB!', big: false, huge: true },
   },
-  // Step 10: AI reply 2
+  // Step 11: AI reply 2
   {
-    desc: 'AI 分析完数据回复你——但原始数据还在上下文里占空间',
+    desc: 'AI 分析完数据回复你——但 Python 脚本和运行结果都还在上下文里占空间',
     phase: 'chat', phaseLabel: 'CHAT',
     tokens: 25000, pct: 46,
     chat: { role: 'ai', text: '上周三个校区共新增 23 组试听，转化 8 组正式学员。新翼校区试听转化率最高 (42%)...' },
     ctx: { type: 'ai', label: 'AI 回复: 招生数据分析', size: '~3K', big: false },
   },
-  // Step 11: User msg 3
+  // Step 12: User msg 3
   {
     desc: '继续提问——上下文持续增长',
     phase: 'chat', phaseLabel: 'CHAT',
@@ -790,7 +798,7 @@ const STEPS = [
     chat: { role: 'user', text: '帮我跑一下上月各校区的到课率统计' },
     ctx: { type: 'user', label: '用户消息: "帮我跑到课率统计"', size: '150', big: false },
   },
-  // Step 12: Bash tool
+  // Step 13: Bash tool
   {
     desc: 'Bash 工具执行脚本——工具的输出全部进入上下文',
     phase: 'tool', phaseLabel: 'TOOL',
@@ -798,7 +806,7 @@ const STEPS = [
     source: 'tool',
     ctx: { type: 'tool', label: 'Bash 输出: 到课率统计脚本结果', size: '~7K', big: true },
   },
-  // Step 13: MCP
+  // Step 14: MCP
   {
     desc: 'MCP 拉取外部数据——大众点评评价 + 钉钉考勤数据涌入',
     phase: 'tool', phaseLabel: 'TOOL',
@@ -806,7 +814,7 @@ const STEPS = [
     source: 'mcp',
     ctx: { type: 'mcp', label: 'MCP: 大众点评评价 + 钉钉考勤数据', size: '~14K!', big: false, huge: true },
   },
-  // Step 14: Skills
+  // Step 15: Skills
   {
     desc: 'Skills 加载 /commit 技能指令',
     phase: 'tool', phaseLabel: 'TOOL',
@@ -814,7 +822,7 @@ const STEPS = [
     source: 'skills',
     ctx: { type: 'skills', label: 'Skill: /commit 提交规范', size: '~3K', big: false },
   },
-  // Step 15: AI reply 3
+  // Step 16: AI reply 3
   {
     desc: 'AI 综合所有信息生成回复',
     phase: 'chat', phaseLabel: 'CHAT',
@@ -822,21 +830,21 @@ const STEPS = [
     chat: { role: 'ai', text: '到课率统计完成。新翼 91.2%、顺联 87.5%、悦然 89.3%。已同步钉钉推送，点评好评率 4.8 分...' },
     ctx: { type: 'ai', label: 'AI 回复: 综合分析 + 钉钉推送', size: '~4K', big: false },
   },
-  // Step 16: Warning
+  // Step 17: Warning
   {
     desc: '窗口快满了！容量条变红——接下来会发生什么？',
     phase: 'overflow', phaseLabel: 'OVERFLOW',
     tokens: 58000, pct: 95,
     warning: true,
   },
-  // Step 17: Unload!
+  // Step 18: Unload!
   {
     desc: '卸载！早期的对话和工具输出被清理，但常驻层安然无恙',
     phase: 'overflow', phaseLabel: 'OVERFLOW',
     tokens: 30000, pct: 50,
     unload: true,
   },
-  // Step 18: /compact
+  // Step 19: /compact
   {
     desc: '/compact 压缩——把剩余内容浓缩为摘要，窗口瞬间清爽',
     phase: 'manage', phaseLabel: 'COMPACT',
@@ -844,7 +852,7 @@ const STEPS = [
     compact: true,
     chat: { role: 'user', text: '/compact' },
   },
-  // Step 19: Summary
+  // Step 20: Summary
   {
     desc: '',
     phase: 'manage', phaseLabel: 'DONE',
