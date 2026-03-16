@@ -505,6 +505,91 @@
   }
 
   /* ===== Summary overlay ===== */
+  /* Boot complete overlay */
+  .boot-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,26,0.95);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s;
+    backdrop-filter: blur(8px);
+  }
+  .boot-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .boot-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-active);
+    border-radius: 16px;
+    padding: 32px 40px;
+    max-width: 720px;
+    width: 90%;
+  }
+  .boot-card h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+  .boot-card h2 span {
+    background: linear-gradient(135deg, var(--c-global-md), var(--c-project-md));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .assembled-prompt {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+    padding: 20px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    overflow-y: auto;
+    max-height: 55vh;
+  }
+  .assembled-prompt .asm-section {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--border-dim);
+  }
+  .assembled-prompt .asm-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .assembled-prompt .asm-tag {
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .assembled-prompt .asm-tag.tag-system { color: var(--c-system); }
+  .assembled-prompt .asm-tag.tag-global { color: var(--c-global-md); }
+  .assembled-prompt .asm-tag.tag-project { color: var(--c-project-md); }
+  .assembled-prompt .asm-tag.tag-rules { color: var(--c-rules); }
+  .assembled-prompt .asm-tag.tag-memory { color: var(--c-memory); }
+  .assembled-prompt .asm-tag.tag-user { color: var(--c-user); }
+  .assembled-prompt .asm-content {
+    color: var(--text-secondary);
+    padding-left: 12px;
+  }
+  .assembled-prompt .asm-redacted {
+    color: var(--text-dim);
+    font-style: italic;
+    padding-left: 12px;
+  }
+  .boot-hint {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
   .summary-overlay {
     position: fixed;
     inset: 0;
@@ -645,6 +730,40 @@
 
 <div class="step-desc" id="stepDesc"></div>
 
+<!-- Boot Complete Overlay -->
+<div class="boot-overlay" id="bootOverlay">
+  <div class="boot-card">
+    <h2><span>开机完成！</span> 组装后的完整提示词长这样：</h2>
+    <div class="assembled-prompt">
+      <div class="asm-section">
+        <span class="asm-tag tag-system">[System Prompt]</span>
+        <div class="asm-redacted">████████ Anthropic 编写，对用户隐藏 ████████</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-global"># claudeMd（全局 ~/.claude/CLAUDE.md）</span>
+        <div class="asm-content">永远用中文沟通，无论我用什么语言提问。<br>不客套、不废话——不要"好的！""当然可以！"这类开场白。<br>简洁为主，不需要的信息不要输出……</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-project"># claudeMd（项目 CLAUDE.md）</span>
+        <div class="asm-content">穹狼科创内部 Claude Code 培训课程的教案、课件、素材项目。<br>培训对象：管理层 + 教学骨干（约 10-15 人），电脑纯小白……</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-rules"># rules（.claude/rules/课后反馈.md）</span>
+        <div class="asm-content">课后反馈用温暖正面的语气，不含负面评价。<br>格式：开头称呼家长，中间描述课堂表现，结尾鼓励……</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-memory"># auto memory（MEMORY.md）</span>
+        <div class="asm-content">Rocky 是少儿编程/AI 教育培训机构创始人，3 个校区。<br>偏好简洁汇报，用表格呈现数据……</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-user"># 用户消息</span>
+        <div class="asm-content">帮我写一份乐高 EV3 课的课后反馈，给家长看的</div>
+      </div>
+    </div>
+    <div class="boot-hint">点击任意位置继续 →</div>
+  </div>
+</div>
+
 <!-- Summary Overlay -->
 <div class="summary-overlay" id="summaryOverlay">
   <div class="summary-card">
@@ -773,6 +892,7 @@ const STEPS = [
     tokens: 11300, pct: 18,
     source: 'memory',
     ctx: { type: 'memory', label: '# auto memory → MEMORY.md', preview: '"Rocky 是少儿编程机构创始人，偏好简洁汇报……"', size: '~800', big: false, locked: true },
+    bootComplete: true,
   },
   // Step 7: AI reply 1
   {
@@ -901,6 +1021,7 @@ const tokenCount = document.getElementById('tokenCount');
 const capacityPct = document.getElementById('capacityPct');
 const capacityFill = document.getElementById('capacityFill');
 const summaryOverlay = document.getElementById('summaryOverlay');
+const bootOverlay = document.getElementById('bootOverlay');
 
 // ===== Init =====
 function init() {
@@ -1166,6 +1287,13 @@ function goToStep(step) {
     doCompact();
   }
 
+  // Boot complete overlay
+  if (s.bootComplete) {
+    setTimeout(() => bootOverlay.classList.add('visible'), 600);
+  } else {
+    bootOverlay.classList.remove('visible');
+  }
+
   // Summary
   if (s.summary) {
     summaryOverlay.classList.add('visible');
@@ -1183,6 +1311,7 @@ function reset() {
   loadedSources.clear();
   contextContainer.classList.remove('warning', 'overflow-active');
   summaryOverlay.classList.remove('visible');
+  bootOverlay.classList.remove('visible');
 
   // Reset sources
   document.querySelectorAll('.source-item').forEach(el => {
@@ -1210,6 +1339,7 @@ function rebuildToStep(targetStep) {
   loadedSources.clear();
   contextContainer.classList.remove('warning', 'overflow-active');
   summaryOverlay.classList.remove('visible');
+  bootOverlay.classList.remove('visible');
 
   document.querySelectorAll('.source-item').forEach(el => {
     el.classList.remove('active', 'loaded');
@@ -1317,7 +1447,11 @@ document.addEventListener('keydown', e => {
 });
 
 document.addEventListener('click', e => {
-  // Don't advance if clicking on summary
+  // Dismiss overlays first
+  if (bootOverlay.classList.contains('visible')) {
+    bootOverlay.classList.remove('visible');
+    return;
+  }
   if (summaryOverlay.classList.contains('visible')) {
     summaryOverlay.classList.remove('visible');
     return;
