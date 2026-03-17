@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day02 · AI 的记忆机制 — 穹狼科创内训</title>
+
+    <!-- Fonts: Bodoni Moda (display) + DM Sans (body) — Notebook Tabs preset -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES — Notebook Tabs Theme
+           Inspired by frontend-slides Notebook Tabs preset
+           =========================================== */
+        :root {
+            /* Core colors */
+            --bg-outer: #2b2b2b;
+            --bg-page: #f8f6f1;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555555;
+            --text-muted: #888888;
+
+            /* Tab colors — section coding */
+            --tab-mint: #98d4bb;
+            --tab-lavender: #c7b8ea;
+            --tab-pink: #f4b8c5;
+            --tab-sky: #a8d8ea;
+            --tab-cream: #ffe6a7;
+            --tab-coral: #f0a8a0;
+            --tab-sage: #b8d4a8;
+
+            /* Accent */
+            --accent: #d4756a;
+            --accent-light: #f0d4d0;
+
+            /* Typography — MUST use clamp() */
+            --font-display: 'Bodoni Moda', serif;
+            --font-body: 'DM Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --title-size: clamp(1.8rem, 5vw, 3.5rem);
+            --h2-size: clamp(1.4rem, 3.5vw, 2.4rem);
+            --h3-size: clamp(1.1rem, 2.5vw, 1.6rem);
+            --body-size: clamp(0.8rem, 1.5vw, 1.1rem);
+            --small-size: clamp(0.65rem, 1vw, 0.85rem);
+            --caption-size: clamp(0.6rem, 0.9vw, 0.75rem);
+
+            /* Spacing */
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(0.5rem, 2vw, 1.5rem);
+            --element-gap: clamp(0.25rem, 1vw, 0.75rem);
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+        }
+
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--bg-outer);
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            padding: var(--slide-padding);
+        }
+
+        /* Responsive breakpoints */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+                --h2-size: clamp(1rem, 3vw, 1.75rem);
+            }
+        }
+
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.1rem, 4vw, 2rem);
+                --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            }
+            .nav-dots, .decorative, .tab-strip { display: none; }
+        }
+
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+            }
+        }
+
+        @media (max-width: 600px) {
+            :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+            .grid-2, .grid-3 { grid-template-columns: 1fr !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+            html { scroll-behavior: auto; }
+        }
+
+        /* ===========================================
+           NOTEBOOK TABS — SIGNATURE LAYOUT
+           Paper card on dark background + colorful tabs
+           =========================================== */
+
+        /* Paper card container */
+        .paper {
+            background: var(--bg-page);
+            border-radius: clamp(8px, 1.5vw, 16px);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2);
+            position: relative;
+            margin: clamp(8px, 1.5vh, 20px) clamp(12px, 3vw, 60px);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .paper-inner {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(1.5rem, 4vw, 3.5rem);
+            padding-left: clamp(2.5rem, 5vw, 5rem);
+            overflow: hidden;
+        }
+
+        /* Binder holes on left */
+        .paper::before {
+            content: '';
+            position: absolute;
+            left: clamp(12px, 2vw, 28px);
+            top: 10%;
+            bottom: 10%;
+            width: 2px;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0px,
+                transparent 28px,
+                #d4d0c8 28px,
+                #d4d0c8 30px,
+                transparent 30px,
+                transparent 48px
+            );
+            opacity: 0.5;
+        }
+
+        /* Tab strip on right */
+        .tab-strip {
+            position: absolute;
+            right: calc(-1 * clamp(10px, 1.5vw, 18px));
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(4px, 0.6vh, 8px);
+            z-index: 10;
+        }
+
+        .tab {
+            width: clamp(10px, 1.5vw, 18px);
+            border-radius: 0 clamp(4px, 0.5vw, 8px) clamp(4px, 0.5vw, 8px) 0;
+            opacity: 0.6;
+            transition: opacity 0.3s ease, height 0.3s ease;
+        }
+
+        .tab.active { opacity: 1; }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-family: var(--font-body);
+            font-size: var(--h3-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+
+        p, li {
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .mono {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+        }
+
+        .section-label {
+            font-family: var(--font-body);
+            font-size: var(--caption-size);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: var(--element-gap);
+        }
+
+        .italic-accent {
+            font-family: var(--font-display);
+            font-style: italic;
+            font-weight: 400;
+            color: var(--accent);
+        }
+
+        /* ===========================================
+           COMPONENT STYLES
+           =========================================== */
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--content-gap);
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--content-gap);
+        }
+
+        /* Card component */
+        .card {
+            background: white;
+            border-radius: clamp(6px, 1vw, 12px);
+            padding: clamp(0.8rem, 2vw, 1.5rem);
+            border: 1px solid #e8e4dc;
+            transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }
+
+        .card-accent {
+            border-top: 3px solid var(--card-color, var(--tab-mint));
+        }
+
+        /* Tag/badge */
+        .tag {
+            display: inline-block;
+            font-family: var(--font-body);
+            font-size: var(--caption-size);
+            font-weight: 700;
+            padding: 0.15em 0.6em;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* Divider line */
+        .divider {
+            width: clamp(40px, 8vw, 80px);
+            height: 2px;
+            background: var(--text-primary);
+            margin: var(--element-gap) 0;
+            opacity: 0.2;
+        }
+
+        /* Question card */
+        .question-card {
+            background: white;
+            border-left: 4px solid var(--accent);
+            border-radius: 0 clamp(6px, 1vw, 12px) clamp(6px, 1vw, 12px) 0;
+            padding: clamp(1rem, 2vw, 1.5rem);
+            margin: var(--element-gap) 0;
+        }
+
+        /* Comparison columns */
+        .compare-good {
+            background: #f0faf4;
+            border-top: 3px solid var(--tab-mint);
+        }
+
+        .compare-bad {
+            background: #fef5f5;
+            border-top: 3px solid var(--tab-coral);
+        }
+
+        /* Timeline step */
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+            margin-bottom: clamp(0.3rem, 0.8vh, 0.6rem);
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: clamp(24px, 3vw, 36px);
+            height: clamp(24px, 3vw, 36px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            font-weight: 700;
+            color: white;
+        }
+
+        /* Big stat callout */
+        .stat-big {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            margin-top: 0.2em;
+        }
+
+        /* Command box */
+        .cmd-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3em;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            background: #f0ede6;
+            padding: 0.2em 0.6em;
+            border-radius: 4px;
+            border: 1px solid #ddd8ce;
+        }
+
+        /* Layer row */
+        .layer-row {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+            padding: clamp(0.5rem, 1.2vw, 0.8rem) 0;
+            border-bottom: 1px solid #e8e4dc;
+        }
+
+        .layer-row:last-child { border-bottom: none; }
+
+        .layer-icon {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            flex-shrink: 0;
+        }
+
+        .layer-badge {
+            font-size: var(--caption-size);
+            padding: 0.15em 0.5em;
+            border-radius: 100px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Capacity bar */
+        .capacity-bar {
+            height: clamp(20px, 3vh, 32px);
+            background: #e8e4dc;
+            border-radius: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .capacity-fill {
+            height: 100%;
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-body);
+            font-size: var(--caption-size);
+            font-weight: 700;
+            color: white;
+            transition: width 0.8s var(--ease-out-expo);
+        }
+
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.05s; }
+        .reveal:nth-child(2) { transition-delay: 0.12s; }
+        .reveal:nth-child(3) { transition-delay: 0.2s; }
+        .reveal:nth-child(4) { transition-delay: 0.28s; }
+        .reveal:nth-child(5) { transition-delay: 0.36s; }
+        .reveal:nth-child(6) { transition-delay: 0.44s; }
+        .reveal:nth-child(7) { transition-delay: 0.52s; }
+
+        /* Slide-in from left */
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity 0.5s var(--ease-out-expo), transform 0.5s var(--ease-out-expo);
+        }
+        .slide.visible .reveal-left { opacity: 1; transform: translateX(0); }
+
+        /* Scale in */
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.92);
+            transition: opacity 0.5s, transform 0.5s var(--ease-out-expo);
+        }
+        .slide.visible .reveal-scale { opacity: 1; transform: scale(1); }
+
+        /* ===========================================
+           TITLE SLIDE — special dark layout
+           =========================================== */
+        .title-slide {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2b2b2b 50%, #1a1a1a 100%);
+        }
+
+        .title-slide .paper {
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .title-slide .paper::before { display: none; }
+
+        .title-slide h1 {
+            color: var(--bg-page);
+            font-size: clamp(2.5rem, 7vw, 5rem);
+        }
+
+        .title-slide p { color: #aaa; }
+
+        .title-accent-line {
+            width: clamp(60px, 10vw, 120px);
+            height: 3px;
+            background: var(--accent);
+            margin: clamp(0.5rem, 1.5vh, 1.2rem) 0;
+        }
+
+        /* Decorative circles on title */
+        .title-deco {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.08;
+        }
+
+        /* ===========================================
+           SECTION DIVIDER SLIDE — with background images
+           =========================================== */
+        .section-slide .paper {
+            background: var(--section-color, var(--tab-mint));
+            justify-content: flex-end;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section-slide .paper::before { display: none; }
+
+        /* Section background image */
+        .section-slide .section-bg {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.18;
+            mix-blend-mode: multiply;
+            filter: grayscale(30%);
+            transition: opacity 0.6s ease;
+        }
+
+        .section-slide:hover .section-bg {
+            opacity: 0.25;
+        }
+
+        .section-slide .section-num {
+            font-family: var(--font-display);
+            font-size: clamp(4rem, 12vw, 10rem);
+            font-weight: 900;
+            color: rgba(0,0,0,0.08);
+            position: absolute;
+            top: clamp(0.5rem, 2vh, 2rem);
+            right: clamp(1rem, 3vw, 3rem);
+            line-height: 1;
+            z-index: 2;
+        }
+
+        .section-slide h2 {
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            position: relative;
+            z-index: 2;
+        }
+
+        .section-slide p {
+            color: rgba(0,0,0,0.5);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ===========================================
+           SLIDE IMAGES — decorative side images
+           =========================================== */
+        .slide-img-wrapper {
+            position: absolute;
+            border-radius: clamp(6px, 1vw, 12px);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            z-index: 1;
+        }
+
+        .slide-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Title slide background image */
+        .title-bg-img {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.12;
+        }
+
+        /* Floating image card on content slides */
+        .float-img {
+            position: absolute;
+            right: clamp(2rem, 5vw, 5rem);
+            bottom: clamp(1rem, 3vh, 3rem);
+            width: clamp(120px, 18vw, 240px);
+            height: clamp(90px, 14vw, 180px);
+            border-radius: clamp(8px, 1vw, 16px);
+            overflow: hidden;
+            opacity: 0.7;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .float-img:hover {
+            opacity: 0.9;
+            transform: scale(1.03);
+        }
+
+        .float-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @media (max-width: 800px) {
+            .float-img { display: none; }
+        }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        /* ===========================================
+           NAV DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: clamp(8px, 1.5vw, 20px);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 1000;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 0;
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            transform: scale(1.3);
+        }
+
+        .nav-dot:hover { background: rgba(255,255,255,0.6); }
+
+        /* ===========================================
+           KEYBOARD HINT
+           =========================================== */
+        .keyboard-hint {
+            position: fixed;
+            bottom: clamp(8px, 1.5vh, 16px);
+            right: clamp(8px, 1.5vw, 20px);
+            font-family: var(--font-body);
+            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+            color: rgba(255,255,255,0.3);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Navigation Dots -->
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+    <!-- Keyboard Hint -->
+    <div class="keyboard-hint">← → Space</div>
+
+    <!-- ===================================================
+         SLIDE 1: TITLE
+         =================================================== -->
+    <section class="slide title-slide" data-section="intro">
+        <div class="title-bg-img" style="background-image:url('https://images.pexels.com/photos/17483867/pexels-photo-17483867/free-photo-of-an-artist-s-illustration-of-artificial-intelligence-ai-this-image-represents-how-machine-learning-is-inspired-by-neuroscience-and-the-human-brain-it-was-created-by-novoto-studio-as-par.jpeg?auto=compress&cs=tinysrgb&w=1600');"></div>
+        <div class="title-deco" style="width:clamp(200px,30vw,500px);height:clamp(200px,30vw,500px);top:-5%;right:-5%;background:var(--tab-mint);"></div>
+        <div class="title-deco" style="width:clamp(150px,20vw,350px);height:clamp(150px,20vw,350px);bottom:5%;right:15%;background:var(--tab-lavender);"></div>
+        <div class="title-deco" style="width:clamp(100px,15vw,250px);height:clamp(100px,15vw,250px);bottom:20%;left:5%;background:var(--tab-pink);"></div>
+        <div class="paper">
+            <div class="paper-inner" style="justify-content:center;">
+                <p class="section-label reveal" style="color:var(--tab-mint);">DAY 02 · 穹狼科创内训</p>
+                <h1 class="reveal">AI 的记忆机制</h1>
+                <div class="title-accent-line reveal"></div>
+                <p class="reveal" style="font-family:var(--font-display);font-style:italic;font-size:var(--h3-size);color:#999;max-width:600px;">
+                    CLAUDE.md 就是你写给 Claude 的工作手册<br>——你写什么，它就按什么来
+                </p>
+                <p class="reveal" style="margin-top:auto;padding-top:clamp(1rem,3vh,2rem);font-size:var(--caption-size);color:#666;">
+                    穹狼科创 · Claude Code 内训课程 · 认知与环境
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 2: 学习目标
+         =================================================== -->
+    <section class="slide" data-section="intro">
+        <div class="paper">
+            <div class="float-img"><img src="https://images.pexels.com/photos/8293635/pexels-photo-8293635.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Checklist"></div>
+            <div class="tab-strip">
+                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
+                <div class="tab" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-mint);">Overview</p>
+                <h2 class="reveal">学习目标</h2>
+                <div class="divider reveal"></div>
+                <div style="display:flex;flex-direction:column;gap:var(--element-gap);margin-top:var(--content-gap);">
+                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
+                        <span style="font-size:clamp(1rem,2vw,1.4rem);">💡</span>
+                        <p>理解"上下文"的概念：Claude 只知道你告诉它的事</p>
+                    </div>
+                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
+                        <span style="font-size:clamp(1rem,2vw,1.4rem);">📝</span>
+                        <p>学会用 CLAUDE.md 给 Claude 设定身份、规则和模板</p>
+                    </div>
+                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
+                        <span style="font-size:clamp(1rem,2vw,1.4rem);">⌨️</span>
+                        <p>掌握核心命令：<span class="cmd-box">/memory</span> <span class="cmd-box">/compact</span> <span class="cmd-box">/new</span> <span class="cmd-box">/resume</span> <span class="cmd-box">/model</span></p>
+                    </div>
+                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
+                        <span style="font-size:clamp(1rem,2vw,1.4rem);">📂</span>
+                        <p>理解三层规则体系：全局 → 项目 → 岗位</p>
+                    </div>
+                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
+                        <span style="font-size:clamp(1rem,2vw,1.4rem);">🧠</span>
+                        <p>理解 Auto-memory 自动记忆机制</p>
+                    </div>
+                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
+                        <span style="font-size:clamp(1rem,2vw,1.4rem);">✅</span>
+                        <p>能为自己的岗位写一份基础版 CLAUDE.md</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 3: 受训人员
+         =================================================== -->
+    <section class="slide" data-section="intro">
+        <div class="paper">
+            <div class="float-img"><img src="https://images.pexels.com/photos/3184293/pexels-photo-3184293.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Teamwork"></div>
+            <div class="tab-strip">
+                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
+                <div class="tab" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-lavender);">Audience</p>
+                <h2 class="reveal">三类角色 · 全程参与 · 学完就用</h2>
+                <div class="divider reveal"></div>
+                <div class="grid-3 reveal-scale" style="margin-top:var(--content-gap);">
+                    <div class="card card-accent" style="--card-color:var(--tab-mint);">
+                        <p class="section-label" style="color:var(--tab-mint);">管理层</p>
+                        <h3>周报 · 分析 · 规划</h3>
+                        <p style="margin-top:0.5em;font-size:var(--small-size);">统一汇报格式<br>自动套用数据模板</p>
+                    </div>
+                    <div class="card card-accent" style="--card-color:var(--tab-coral);">
+                        <p class="section-label" style="color:var(--tab-coral);">销售</p>
+                        <h3>咨询 · 话术 · 文案</h3>
+                        <p style="margin-top:0.5em;font-size:var(--small-size);">标准话术库<br>品牌调性统一</p>
+                    </div>
+                    <div class="card card-accent" style="--card-color:var(--tab-lavender);">
+                        <p class="section-label" style="color:var(--tab-lavender);">老师</p>
+                        <h3>反馈 · 教案 · 评估</h3>
+                        <p style="margin-top:0.5em;font-size:var(--small-size);">反馈模板统一<br>课程知识准确</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SECTION: 提问引入
+         =================================================== -->
+    <section class="slide section-slide" style="--section-color:var(--tab-mint);">
+        <div class="paper">
+            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/5819305/pexels-photo-5819305.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
+            <span class="section-num">01</span>
+            <div class="paper-inner" style="justify-content:flex-end;">
+                <h2 class="reveal">提问引入</h2>
+                <p class="reveal" style="font-size:var(--h3-size);">从一个简单的问题开始</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 5: 问题一
+         =================================================== -->
+    <section class="slide" data-section="questions">
+        <div class="paper">
+            <div class="tab-strip">
+                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-mint);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-mint);">Question 01</p>
+                <div class="question-card reveal">
+                    <h2 style="font-size:var(--h3-size);">❓ OpenClaw 和豆包、DeepSeek 这些对话框有什么区别？</h2>
+                </div>
+                <div class="reveal" style="margin-top:var(--content-gap);background:#f5faf7;border-radius:8px;padding:clamp(0.8rem,2vw,1.2rem);border-left:3px solid var(--tab-mint);">
+                    <p style="color:var(--tab-sage);font-weight:700;font-size:var(--small-size);margin-bottom:0.3em;">💡 答案</p>
+                    <p><strong>不是豆包笨——是没人告诉它。</strong></p>
+                    <p>OpenClaw 之所以懂穹狼，是因为有人给它写了一份"手册"。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 6: 核心区别
+         =================================================== -->
+    <section class="slide" data-section="questions">
+        <div class="paper">
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
+                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-coral);">Key Difference</p>
+                <h2 class="reveal" style="font-size:var(--h3-size);">🔑 最根本的区别是什么？</h2>
+                <div class="divider reveal"></div>
+                <div class="grid-2 reveal-scale" style="margin-top:var(--content-gap);">
+                    <div class="card compare-bad">
+                        <p class="section-label" style="color:var(--tab-coral);">❌ 豆包 / DeepSeek</p>
+                        <ul style="list-style:none;padding:0;">
+                            <li style="padding:0.2em 0;">没有记忆机制</li>
+                            <li style="padding:0.2em 0;">没法设定系统提示词</li>
+                            <li style="padding:0.2em 0;">每次打开不知道你是谁</li>
+                            <li style="padding:0.2em 0;">上次说的话全忘了</li>
+                        </ul>
+                    </div>
+                    <div class="card compare-good">
+                        <p class="section-label" style="color:var(--tab-mint);">✅ OpenClaw / Claude Code</p>
+                        <ul style="list-style:none;padding:0;">
+                            <li style="padding:0.2em 0;">有记忆机制和规则机制</li>
+                            <li style="padding:0.2em 0;">可设定系统提示词</li>
+                            <li style="padding:0.2em 0;">写规则文件自动加载</li>
+                            <li style="padding:0.2em 0;">越用越懂你</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 7: 养龙虾
+         =================================================== -->
+    <section class="slide title-slide">
+        <div class="paper">
+            <div class="float-img" style="opacity:0.5;right:clamp(1.5rem,4vw,4rem);bottom:clamp(1.5rem,4vh,4rem);width:clamp(140px,20vw,280px);height:clamp(105px,15vw,210px);"><img src="https://images.pexels.com/photos/248455/pexels-photo-248455.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Lobster"></div>
+            <div class="paper-inner" style="justify-content:center;align-items:center;text-align:center;">
+                <p class="reveal" style="font-size:clamp(3rem,8vw,6rem);">🦞</p>
+                <h1 class="reveal" style="letter-spacing:0.15em;margin-top:0.3em;">养 龙 虾</h1>
+                <div class="title-accent-line reveal" style="margin-left:auto;margin-right:auto;"></div>
+                <p class="reveal italic-accent" style="font-size:var(--h3-size);color:var(--tab-coral);max-width:500px;">
+                    它不是买回来就能用的成品
+                </p>
+                <p class="reveal" style="font-size:var(--body-size);color:#888;max-width:500px;margin-top:0.5em;">
+                    你得喂它规则、调它的配置、让它积累记忆<br>它才会越来越懂你
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SECTION: 上下文窗口
+         =================================================== -->
+    <section class="slide section-slide" style="--section-color:var(--tab-lavender);">
+        <div class="paper">
+            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/921294/pexels-photo-921294.png?auto=compress&cs=tinysrgb&w=1200');"></div>
+            <span class="section-num">02</span>
+            <div class="paper-inner" style="justify-content:flex-end;">
+                <h2 class="reveal">上下文窗口</h2>
+                <p class="reveal" style="font-size:var(--h3-size);">AI 的"脑子"到底是怎么运作的？</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 9: 什么是上下文窗口
+         =================================================== -->
+    <section class="slide" data-section="context">
+        <div class="paper">
+            <div class="float-img"><img src="https://images.pexels.com/photos/4256211/pexels-photo-4256211.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Workspace"></div>
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
+                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-lavender);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-pink);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-lavender);">Concept</p>
+                <h2 class="reveal">上下文窗口 = AI 的"工作台"</h2>
+                <p class="reveal" style="margin-top:0.3em;">它能看到的全部信息，都放在这张"工作台"上</p>
+                <div class="divider reveal"></div>
+                <div class="grid-3 reveal" style="margin-top:var(--content-gap);">
+                    <div class="card" style="text-align:center;">
+                        <p style="font-size:clamp(1.5rem,3vw,2.2rem);">📥</p>
+                        <h3 style="font-size:var(--body-size);">有限容量</h3>
+                        <p class="stat-big" style="color:var(--tab-lavender);font-size:clamp(1.5rem,4vw,2.5rem);">200K</p>
+                        <p class="stat-label">tokens ≈ 15万字</p>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <p style="font-size:clamp(1.5rem,3vw,2.2rem);">📋</p>
+                        <h3 style="font-size:var(--body-size);">实时拼装</h3>
+                        <p style="font-size:var(--small-size);margin-top:0.5em;">每次对话都重新<br>组装内容</p>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <p style="font-size:clamp(1.5rem,3vw,2.2rem);">🗑️</p>
+                        <h3 style="font-size:var(--body-size);">会溢出</h3>
+                        <p style="font-size:var(--small-size);margin-top:0.5em;">满了就清掉<br>早期内容</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 10: 开机流程
+         =================================================== -->
+    <section class="slide" data-section="context">
+        <div class="paper">
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
+                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-lavender);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-lavender);">Boot Sequence</p>
+                <h2 class="reveal">上下文窗口是怎么"开机"的</h2>
+                <div class="divider reveal"></div>
+                <div style="margin-top:var(--content-gap);">
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-mint);">1</div><div><strong>你发了一条消息</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">消息进入窗口，触发组装流程</span></div></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-mint);">2</div><div><strong>System Prompt 加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">Anthropic 的出厂指令，看不到也改不了</span></div></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">3</div><div><strong>全局 CLAUDE.md 加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">你自己写的个人规范</span></div></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">4</div><div><strong>项目 CLAUDE.md 加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">公司级别的规则——穹狼的信息都在这</span></div></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-lavender);">5</div><div><strong>Rules 文件加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">岗位级别的细则——反馈规范、话术规范等</span></div></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-lavender);">6</div><div><strong>Memory 加载 → 开机完成</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">所有手册拼好了，Claude 准备就绪</span></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 11: 窗口满了
+         =================================================== -->
+    <section class="slide" data-section="context">
+        <div class="paper" style="background:var(--text-primary);">
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-coral);">⚠️ Alert</p>
+                <h2 class="reveal" style="color:var(--bg-page);">窗口满了！</h2>
+                <div class="capacity-bar reveal" style="margin:var(--content-gap) 0;background:#333;">
+                    <div class="capacity-fill" style="width:100%;background:var(--tab-coral);">100% — 已满</div>
+                </div>
+                <div class="grid-2 reveal" style="margin-top:var(--content-gap);">
+                    <div style="background:#2a1515;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);">
+                        <p style="color:var(--tab-coral);font-weight:700;font-size:var(--small-size);margin-bottom:0.5em;">被清掉的 ❌</p>
+                        <ul style="list-style:none;padding:0;color:#ccc;font-size:var(--small-size);">
+                            <li>早期的对话记录</li>
+                            <li>之前读取的数据</li>
+                            <li>旧的工具调用结果</li>
+                            <li>口头说过的偏好</li>
+                        </ul>
+                    </div>
+                    <div style="background:#152a1a;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);">
+                        <p style="color:var(--tab-mint);font-weight:700;font-size:var(--small-size);margin-bottom:0.5em;">留下来的 🔒</p>
+                        <ul style="list-style:none;padding:0;color:#ccc;font-size:var(--small-size);">
+                            <li>CLAUDE.md（常驻）</li>
+                            <li>Rules 文件（常驻）</li>
+                            <li>Memory（常驻）</li>
+                            <li>System Prompt（常驻）</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="reveal" style="text-align:center;margin-top:var(--content-gap);color:var(--tab-cream);font-family:var(--font-display);font-style:italic;font-size:var(--body-size);">
+                    💡 口头说的会被清掉，写进手册的永远在
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SECTION: 陷阱问答
+         =================================================== -->
+    <section class="slide section-slide" style="--section-color:var(--tab-pink);">
+        <div class="paper">
+            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/12040985/pexels-photo-12040985.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
+            <span class="section-num">03</span>
+            <div class="paper-inner" style="justify-content:flex-end;">
+                <h2 class="reveal">陷阱问答</h2>
+                <p class="reveal" style="font-size:var(--h3-size);">检验你是否真正理解了</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 13: 陷阱1
+         =================================================== -->
+    <section class="slide" data-section="traps">
+        <div class="paper">
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
+                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sky);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-pink);">Trap #1</p>
+                <div class="question-card reveal">
+                    <h2 style="font-size:var(--h3-size);">🤔 你跟 Claude 聊了 2 小时，它是不是越来越懂你了？</h2>
+                </div>
+                <div class="grid-2 reveal" style="margin-top:var(--content-gap);">
+                    <div style="background:#fef8f0;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-cream);">
+                        <p style="color:#b08050;font-weight:700;font-size:var(--small-size);">⚡ 陷阱</p>
+                        <p style="font-size:var(--small-size);">大部分人会说"是"</p>
+                    </div>
+                    <div style="background:#f0faf4;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-mint);">
+                        <p style="color:var(--tab-sage);font-weight:700;font-size:var(--small-size);">✅ 答案</p>
+                        <p style="font-size:var(--small-size);"><strong>不是！</strong>早期对话已被卸载</p>
+                    </div>
+                </div>
+                <div class="reveal" style="margin-top:var(--element-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
+                    <p style="font-size:var(--body-size);">聊了 2 小时窗口快满了，早期的对话反而被卸载了——它不是越来越懂你，是越来越<strong>只记得最近说的话</strong>。想让它一直懂你，要写进 CLAUDE.md。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 14: 陷阱2
+         =================================================== -->
+    <section class="slide" data-section="traps">
+        <div class="paper">
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
+                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-pink);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sky);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-pink);">Trap #2</p>
+                <div class="question-card reveal">
+                    <h2 style="font-size:var(--h3-size);">🤔 我在 CLAUDE.md 里写了"课后反馈要用温暖语气"，第二天开新对话，Claude 还记得吗？</h2>
+                </div>
+                <div class="grid-2 reveal" style="margin-top:var(--content-gap);">
+                    <div style="background:#fef8f0;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-cream);">
+                        <p style="color:#b08050;font-weight:700;font-size:var(--small-size);">⚡ 陷阱</p>
+                        <p style="font-size:var(--small-size);">有人会说"不记得"</p>
+                    </div>
+                    <div style="background:#f0faf4;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-mint);">
+                        <p style="color:var(--tab-sage);font-weight:700;font-size:var(--small-size);">✅ 答案</p>
+                        <p style="font-size:var(--small-size);"><strong>记得！</strong>CLAUDE.md 是常驻层</p>
+                    </div>
+                </div>
+                <div class="reveal" style="margin-top:var(--element-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
+                    <p style="font-size:var(--body-size);">CLAUDE.md 是常驻层，每次新对话都会重新加载。这就是它和"聊天时口头说一句"的本质区别。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 15: 陷阱3
+         =================================================== -->
+    <section class="slide" data-section="traps">
+        <div class="paper">
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
+                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-pink);">Trap #3</p>
+                <div class="question-card reveal">
+                    <h2 style="font-size:var(--h3-size);">🤔 口头说"表格都用蓝色标题"跟写进 CLAUDE.md，效果一样吗？</h2>
+                </div>
+                <div class="reveal" style="margin-top:var(--content-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
+                    <p><strong style="color:var(--accent);">这一轮一样，下一轮就不一样了！</strong></p>
+                    <p style="margin-top:0.5em;font-size:var(--small-size);">口头说的只在当前对话有效，窗口满了还可能被卸载。写进 CLAUDE.md 的每次对话都在——这就是"短期记忆"和"长期记忆"的区别。</p>
+                </div>
+                <div class="reveal" style="margin-top:var(--element-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
+                    <p class="section-label" style="color:var(--tab-lavender);">💎 加分题</p>
+                    <p style="font-size:var(--body-size);">让 Claude 查了大众点评的评价，又让它发到钉钉群。<strong>哪个更占窗口？</strong></p>
+                    <p style="margin-top:0.3em;font-size:var(--small-size);color:var(--text-muted);">答案：查大众点评远比发钉钉占空间。不是操作复杂就占空间——是<strong>返回的数据量大</strong>才占空间。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SECTION: 四层记忆体系
+         =================================================== -->
+    <section class="slide section-slide" style="--section-color:var(--tab-sky);">
+        <div class="paper">
+            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/2693208/pexels-photo-2693208.png?auto=compress&cs=tinysrgb&w=1200');"></div>
+            <span class="section-num">04</span>
+            <div class="paper-inner" style="justify-content:flex-end;">
+                <h2 class="reveal">四层记忆体系</h2>
+                <p class="reveal" style="font-size:var(--h3-size);">从个人到团队，记忆分层管理</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 17: 四层总览
+         =================================================== -->
+    <section class="slide" data-section="layers">
+        <div class="paper">
+            <div class="float-img"><img src="https://images.pexels.com/photos/357514/pexels-photo-357514.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Folders"></div>
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
+                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-sky);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-cream);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-sky);">Memory Architecture</p>
+                <h2 class="reveal">四层记忆体系</h2>
+                <div class="divider reveal"></div>
+                <div style="margin-top:var(--content-gap);">
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">🧠</span>
+                        <div style="flex:1;">
+                            <strong>Auto-memory</strong>
+                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">MEMORY.md</span>
+                            <p style="font-size:var(--small-size);">Claude 自动积累 · ≈ 同事久了知道你的习惯</p>
+                        </div>
+                        <span class="layer-badge" style="background:var(--tab-lavender);color:#4a3a7a;">跟着个人走</span>
+                    </div>
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">🪪</span>
+                        <div style="flex:1;">
+                            <strong>全局 CLAUDE.md</strong>
+                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">~/.claude/CLAUDE.md</span>
+                            <p style="font-size:var(--small-size);">你自己写 · ≈ 你的工牌</p>
+                        </div>
+                        <span class="layer-badge" style="background:var(--tab-lavender);color:#4a3a7a;">跟着个人走</span>
+                    </div>
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">📖</span>
+                        <div style="flex:1;">
+                            <strong>项目 CLAUDE.md</strong>
+                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">项目根目录</span>
+                            <p style="font-size:var(--small-size);">团队一起写 · ≈ 穹狼员工手册</p>
+                        </div>
+                        <span class="layer-badge" style="background:var(--tab-coral);color:#7a3a3a;">跟着项目走</span>
+                    </div>
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">📋</span>
+                        <div style="flex:1;">
+                            <strong>.claude/rules/</strong>
+                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">.claude/rules/*.md</span>
+                            <p style="font-size:var(--small-size);">各岗位写各自的 · ≈ 岗位操作手册</p>
+                        </div>
+                        <span class="layer-badge" style="background:var(--tab-coral);color:#7a3a3a;">跟着项目走</span>
+                    </div>
+                </div>
+                <p class="reveal" style="margin-top:var(--content-gap);text-align:center;font-size:var(--small-size);color:var(--text-muted);font-style:italic;">
+                    前两层跟着你个人走（换项目还在），后两层跟着项目走（换人也在）
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 18: CLAUDE.md vs Rules
+         =================================================== -->
+    <section class="slide" data-section="layers">
+        <div class="paper">
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
+                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-sky);">Difference</p>
+                <h2 class="reveal">CLAUDE.md 是"我是谁"<br>Rules 是"做这件事时怎么做"</h2>
+                <div class="divider reveal"></div>
+                <div class="grid-3 reveal-scale" style="margin-top:var(--content-gap);">
+                    <div class="card card-accent" style="--card-color:var(--tab-mint);">
+                        <p class="section-label" style="color:var(--tab-mint);">管理层 Rules</p>
+                        <p style="font-size:var(--small-size);">写周报时的格式规范<br>数据对比要带同比</p>
+                    </div>
+                    <div class="card card-accent" style="--card-color:var(--tab-coral);">
+                        <p class="section-label" style="color:var(--tab-coral);">销售 Rules</p>
+                        <p style="font-size:var(--small-size);">回复家长咨询的话术<br>不承诺确定性结果</p>
+                    </div>
+                    <div class="card card-accent" style="--card-color:var(--tab-lavender);">
+                        <p class="section-label" style="color:var(--tab-lavender);">老师 Rules</p>
+                        <p style="font-size:var(--small-size);">课后反馈的模板格式<br>评估维度和用语规范</p>
+                    </div>
+                </div>
+                <p class="reveal" style="margin-top:var(--content-gap);text-align:center;font-family:var(--font-display);font-style:italic;font-size:var(--body-size);color:var(--accent);">
+                    CLAUDE.md 一份，rules 可以有很多份
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SECTION: 五个管理命令
+         =================================================== -->
+    <section class="slide section-slide" style="--section-color:var(--tab-cream);">
+        <div class="paper">
+            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/1933900/pexels-photo-1933900.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
+            <span class="section-num">05</span>
+            <div class="paper-inner" style="justify-content:flex-end;">
+                <h2 class="reveal">五个管理命令</h2>
+                <p class="reveal" style="font-size:var(--h3-size);">管理 AI 记忆的核心工具</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 20: 命令概览
+         =================================================== -->
+    <section class="slide" data-section="commands">
+        <div class="paper">
+            <div class="float-img"><img src="https://images.pexels.com/photos/16129724/pexels-photo-16129724.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Coding"></div>
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sky);"></div>
+                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-cream);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sage);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-cream);filter:brightness(0.7);">Commands</p>
+                <h2 class="reveal">五个核心命令</h2>
+                <div class="divider reveal"></div>
+                <div style="margin-top:var(--content-gap);">
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">🔍</span>
+                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/memory</span><p style="font-size:var(--small-size);">查看 Claude 记住了什么 · <em>检查手册加载了没</em></p></div>
+                    </div>
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">📦</span>
+                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/compact</span><p style="font-size:var(--small-size);">对话太长，整理只留重点 · <em>手册不会丢</em></p></div>
+                    </div>
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">🆕</span>
+                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/new</span><p style="font-size:var(--small-size);">开全新对话（重新开机） · <em>手册重新加载，聊天清空</em></p></div>
+                    </div>
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">⏩</span>
+                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/resume</span><p style="font-size:var(--small-size);">恢复之前的对话 · <em>翻出来接着聊</em></p></div>
+                    </div>
+                    <div class="layer-row reveal">
+                        <span class="layer-icon">🔄</span>
+                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/model</span><p style="font-size:var(--small-size);">切换 AI 模型级别 · <em>换个不同水平的人来干活</em></p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SECTION: 记忆积累
+         =================================================== -->
+    <section class="slide section-slide" style="--section-color:var(--tab-sage);">
+        <div class="paper">
+            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/2128249/pexels-photo-2128249.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
+            <span class="section-num">06</span>
+            <div class="paper-inner" style="justify-content:flex-end;">
+                <h2 class="reveal">记忆积累三种方式</h2>
+                <p class="reveal" style="font-size:var(--h3-size);">发现新规则，怎么加进去？</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 22: 三种方式
+         =================================================== -->
+    <section class="slide" data-section="memory">
+        <div class="paper">
+            <div class="float-img"><img src="https://images.pexels.com/photos/17483869/pexels-photo-17483869.jpeg?auto=compress&cs=tinysrgb&w=600" alt="AI Brain"></div>
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
+                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-sage);"></div>
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--tab-sage);">Methods</p>
+                <h2 class="reveal">三种方式积累记忆</h2>
+                <div class="divider reveal"></div>
+                <div class="grid-3 reveal-scale" style="margin-top:var(--content-gap);">
+                    <div class="card card-accent" style="--card-color:var(--tab-mint);">
+                        <p class="section-label" style="color:var(--tab-mint);">方式一</p>
+                        <h3 style="font-size:var(--body-size);"># 手动追加</h3>
+                        <p style="font-size:var(--small-size);margin-top:0.5em;">输入 # 把规则追加到 CLAUDE.md</p>
+                        <p style="font-size:var(--caption-size);color:var(--text-muted);margin-top:0.3em;font-style:italic;">≈ 你自己拿笔补一条</p>
+                    </div>
+                    <div class="card card-accent" style="--card-color:var(--tab-coral);">
+                        <p class="section-label" style="color:var(--tab-coral);">方式二</p>
+                        <h3 style="font-size:var(--body-size);">口头指令更新</h3>
+                        <p style="font-size:var(--small-size);margin-top:0.5em;">直接说"帮我加一条规则"</p>
+                        <p style="font-size:var(--caption-size);color:var(--text-muted);margin-top:0.3em;font-style:italic;">≈ 口头跟助理说</p>
+                    </div>
+                    <div class="card card-accent" style="--card-color:var(--tab-lavender);">
+                        <p class="section-label" style="color:var(--tab-lavender);">方式三</p>
+                        <h3 style="font-size:var(--body-size);">Auto-memory</h3>
+                        <p style="font-size:var(--small-size);margin-top:0.5em;">Claude 观察你的习惯，主动提议记住</p>
+                        <p style="font-size:var(--caption-size);color:var(--text-muted);margin-top:0.3em;font-style:italic;">≈ Claude 自己学</p>
+                    </div>
+                </div>
+                <div class="reveal" style="margin-top:var(--content-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;text-align:center;">
+                    <p style="font-size:var(--small-size);">
+                        <strong>关键区分：</strong>"你喜欢表格汇报" → 个人习惯 → <span class="tag" style="background:var(--tab-lavender);color:#4a3a7a;">Auto-memory</span>
+                        &nbsp;≠&nbsp;
+                        "不提学费" → 公司制度 → <span class="tag" style="background:var(--tab-coral);color:#7a3a3a;">CLAUDE.md</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 23: 要点回顾
+         =================================================== -->
+    <section class="slide title-slide">
+        <div class="title-bg-img" style="background-image:url('https://images.pexels.com/photos/17484975/pexels-photo-17484975/free-photo-of-an-artist-s-illustration-of-artificial-intelligence-ai-this-image-depicts-how-ai-can-help-humans-to-understand-the-complexity-of-biology-it-was-created-by-artist-khyati-trehan-as-part.png?auto=compress&cs=tinysrgb&w=1600');opacity:0.1;"></div>
+        <div class="title-deco" style="width:clamp(250px,35vw,600px);height:clamp(250px,35vw,600px);bottom:-10%;left:-10%;background:var(--tab-mint);"></div>
+        <div class="title-deco" style="width:clamp(180px,25vw,400px);height:clamp(180px,25vw,400px);top:10%;right:5%;background:var(--tab-cream);"></div>
+        <div class="paper">
+            <div class="paper-inner" style="justify-content:center;align-items:center;text-align:center;">
+                <p class="reveal" style="font-size:clamp(2rem,5vw,3.5rem);">🦞</p>
+                <h1 class="reveal" style="font-size:clamp(1.8rem,5vw,3rem);">养龙虾</h1>
+                <p class="reveal italic-accent" style="font-size:var(--body-size);color:#aaa;max-width:500px;margin-top:0.5em;">
+                    你喂它什么规则，它就按什么规则来
+                </p>
+                <div style="margin-top:var(--content-gap);text-align:left;display:inline-block;">
+                    <p class="reveal mono" style="color:var(--tab-mint);padding:0.2em 0;">全局 CLAUDE.md → 你是谁（个人工牌）</p>
+                    <p class="reveal mono" style="color:var(--tab-coral);padding:0.2em 0;">项目 CLAUDE.md → 穹狼怎么干（员工手册）</p>
+                    <p class="reveal mono" style="color:var(--tab-cream);padding:0.2em 0;">.claude/rules/ → 你的岗位怎么干（岗位手册）</p>
+                    <p class="reveal mono" style="color:var(--tab-lavender);padding:0.2em 0;">Auto-memory → Claude 自己记住的习惯</p>
+                </div>
+                <p class="reveal" style="margin-top:var(--content-gap);font-size:var(--small-size);color:#666;">
+                    <span class="cmd-box">/memory</span>&nbsp;
+                    <span class="cmd-box">/compact</span>&nbsp;
+                    <span class="cmd-box">/new</span>&nbsp;
+                    <span class="cmd-box">/resume</span>&nbsp;
+                    <span class="cmd-box">/model</span>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 24: 课后作业
+         =================================================== -->
+    <section class="slide" data-section="outro">
+        <div class="paper">
+            <div class="float-img"><img src="https://images.pexels.com/photos/3782235/pexels-photo-3782235.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Sticky Notes"></div>
+            <div class="tab-strip">
+                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
+                <div class="tab" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
+                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
+                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
+            </div>
+            <div class="paper-inner">
+                <p class="section-label reveal" style="color:var(--accent);">Homework</p>
+                <h2 class="reveal">课后作业</h2>
+                <div class="divider reveal"></div>
+                <p class="reveal" style="margin-top:var(--element-gap);font-family:var(--font-display);font-style:italic;color:var(--accent);">制作上下文窗口交互演示页面</p>
+                <div style="margin-top:var(--content-gap);">
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">1</div><p>参考课堂演示页面，加入 Skills、MCP、API 的演示</p></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">2</div><p>页面里用你自己真实的 CLAUDE.md、rules、MEMORY.md</p></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">3</div><p>标注你用的模型和窗口大小（如 Sonnet 4 · 200K tokens）</p></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">4</div><p>发布到 pages.edgeone.ai（拖拽 HTML 文件即可）</p></div>
+                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">5</div><p>用钉钉 Webhook 把链接发到培训练习群</p></div>
+                </div>
+                <div class="reveal" style="margin-top:var(--content-gap);background:#fef8f0;border-radius:8px;padding:clamp(0.5rem,1vw,0.8rem);border-left:3px solid var(--tab-cream);">
+                    <p style="font-size:var(--small-size);">⚡ 提示：先自己搞懂 Skills、MCP、API 的区别，再让 Claude 帮你做</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 25: THANK YOU
+         =================================================== -->
+    <section class="slide title-slide">
+        <div class="title-bg-img" style="background-image:url('https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1600');opacity:0.08;"></div>
+        <div class="title-deco" style="width:clamp(300px,40vw,700px);height:clamp(300px,40vw,700px);top:-15%;right:-10%;background:var(--tab-lavender);"></div>
+        <div class="title-deco" style="width:clamp(200px,25vw,450px);height:clamp(200px,25vw,450px);bottom:-5%;left:5%;background:var(--tab-mint);"></div>
+        <div class="paper">
+            <div class="paper-inner" style="justify-content:center;align-items:center;text-align:center;">
+                <h1 class="reveal" style="letter-spacing:0.1em;font-size:clamp(2.5rem,8vw,5rem);">THANK YOU</h1>
+                <p class="reveal" style="font-family:var(--font-display);font-style:italic;font-size:var(--h3-size);color:#999;">Day 02 · AI 的记忆机制</p>
+                <div class="title-accent-line reveal" style="margin-left:auto;margin-right:auto;"></div>
+                <p class="reveal" style="font-size:var(--body-size);color:#888;">下节预告：Claude Code 基本功——对话与文件</p>
+                <p class="reveal" style="margin-top:auto;padding-top:clamp(1rem,3vh,2rem);font-size:var(--caption-size);color:#666;">穹狼科创 · Claude Code 内训课程</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===========================================
+         JAVASCRIPT: Presentation Controller
+         =========================================== -->
+    <script>
+        /* === SLIDE PRESENTATION CONTROLLER === */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.isScrolling = false;
+
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupProgressBar();
+                this.setupNavDots();
+                this.setupWheelNav();
+
+                // Initial state: make first slide visible
+                this.slides[0].classList.add('visible');
+            }
+
+            /* --- Intersection Observer for animations --- */
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            // Update current slide index
+                            const idx = Array.from(this.slides).indexOf(entry.target);
+                            if (idx !== -1) {
+                                this.currentSlide = idx;
+                                this.updateProgressBar();
+                                this.updateNavDots();
+                            }
+                        }
+                    });
+                }, {
+                    threshold: 0.5
+                });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            /* --- Keyboard Navigation --- */
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowDown':
+                        case 'ArrowRight':
+                        case ' ':
+                        case 'PageDown':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide + 1);
+                            break;
+                        case 'ArrowUp':
+                        case 'ArrowLeft':
+                        case 'PageUp':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide - 1);
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.goToSlide(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.goToSlide(this.slides.length - 1);
+                            break;
+                    }
+                });
+            }
+
+            /* --- Touch/Swipe Navigation --- */
+            setupTouchNav() {
+                let startY = 0;
+                let startX = 0;
+
+                document.addEventListener('touchstart', (e) => {
+                    startY = e.touches[0].clientY;
+                    startX = e.touches[0].clientX;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const deltaY = startY - e.changedTouches[0].clientY;
+                    const deltaX = startX - e.changedTouches[0].clientX;
+
+                    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 50) {
+                        if (deltaY > 0) this.goToSlide(this.currentSlide + 1);
+                        else this.goToSlide(this.currentSlide - 1);
+                    }
+                }, { passive: true });
+            }
+
+            /* --- Mouse Wheel Navigation --- */
+            setupWheelNav() {
+                let lastWheel = 0;
+                document.addEventListener('wheel', (e) => {
+                    const now = Date.now();
+                    if (now - lastWheel < 800) return;
+                    lastWheel = now;
+
+                    if (e.deltaY > 0) this.goToSlide(this.currentSlide + 1);
+                    else if (e.deltaY < 0) this.goToSlide(this.currentSlide - 1);
+                }, { passive: true });
+            }
+
+            /* --- Progress Bar --- */
+            setupProgressBar() {
+                this.progressBar = document.getElementById('progressBar');
+                this.updateProgressBar();
+            }
+
+            updateProgressBar() {
+                if (!this.progressBar) return;
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = progress + '%';
+            }
+
+            /* --- Navigation Dots --- */
+            setupNavDots() {
+                const container = document.getElementById('navDots');
+                if (!container) return;
+
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    container.appendChild(dot);
+                });
+
+                this.navDotElements = container.querySelectorAll('.nav-dot');
+            }
+
+            updateNavDots() {
+                if (!this.navDotElements) return;
+                this.navDotElements.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+
+            /* --- Navigate to slide --- */
+            goToSlide(index) {
+                if (index < 0 || index >= this.slides.length) return;
+                this.currentSlide = index;
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                this.updateProgressBar();
+                this.updateNavDots();
+            }
+        }
+
+        /* === INITIALIZE === */
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
