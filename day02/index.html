@@ -1,1571 +1,1699 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Day02 · AI 的记忆机制 — 穹狼科创内训</title>
-
-    <!-- Fonts: Bodoni Moda (display) + DM Sans (body) — Notebook Tabs preset -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-    <style>
-        /* ===========================================
-           CSS CUSTOM PROPERTIES — Notebook Tabs Theme
-           Inspired by frontend-slides Notebook Tabs preset
-           =========================================== */
-        :root {
-            /* Core colors */
-            --bg-outer: #2b2b2b;
-            --bg-page: #f8f6f1;
-            --text-primary: #1a1a1a;
-            --text-secondary: #555555;
-            --text-muted: #888888;
-
-            /* Tab colors — section coding */
-            --tab-mint: #98d4bb;
-            --tab-lavender: #c7b8ea;
-            --tab-pink: #f4b8c5;
-            --tab-sky: #a8d8ea;
-            --tab-cream: #ffe6a7;
-            --tab-coral: #f0a8a0;
-            --tab-sage: #b8d4a8;
-
-            /* Accent */
-            --accent: #d4756a;
-            --accent-light: #f0d4d0;
-
-            /* Typography — MUST use clamp() */
-            --font-display: 'Bodoni Moda', serif;
-            --font-body: 'DM Sans', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-
-            --title-size: clamp(1.8rem, 5vw, 3.5rem);
-            --h2-size: clamp(1.4rem, 3.5vw, 2.4rem);
-            --h3-size: clamp(1.1rem, 2.5vw, 1.6rem);
-            --body-size: clamp(0.8rem, 1.5vw, 1.1rem);
-            --small-size: clamp(0.65rem, 1vw, 0.85rem);
-            --caption-size: clamp(0.6rem, 0.9vw, 0.75rem);
-
-            /* Spacing */
-            --slide-padding: clamp(1.5rem, 4vw, 4rem);
-            --content-gap: clamp(0.5rem, 2vw, 1.5rem);
-            --element-gap: clamp(0.25rem, 1vw, 0.75rem);
-
-            /* Animation */
-            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-            --duration-normal: 0.6s;
-        }
-
-        /* ===========================================
-           VIEWPORT FITTING: MANDATORY BASE STYLES
-           =========================================== */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        html, body {
-            height: 100%;
-            overflow-x: hidden;
-        }
-
-        html {
-            scroll-snap-type: y mandatory;
-            scroll-behavior: smooth;
-        }
-
-        .slide {
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
-            overflow: hidden;
-            scroll-snap-align: start;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            background: var(--bg-outer);
-        }
-
-        .slide-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            max-height: 100%;
-            overflow: hidden;
-            padding: var(--slide-padding);
-        }
-
-        /* Responsive breakpoints */
-        @media (max-height: 700px) {
-            :root {
-                --slide-padding: clamp(0.75rem, 3vw, 2rem);
-                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
-                --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
-                --h2-size: clamp(1rem, 3vw, 1.75rem);
-            }
-        }
-
-        @media (max-height: 600px) {
-            :root {
-                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
-                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
-                --title-size: clamp(1.1rem, 4vw, 2rem);
-                --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
-            }
-            .nav-dots, .decorative, .tab-strip { display: none; }
-        }
-
-        @media (max-height: 500px) {
-            :root {
-                --slide-padding: clamp(0.4rem, 2vw, 1rem);
-                --title-size: clamp(1rem, 3.5vw, 1.5rem);
-            }
-        }
-
-        @media (max-width: 600px) {
-            :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
-            .grid-2, .grid-3 { grid-template-columns: 1fr !important; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                transition-duration: 0.2s !important;
-            }
-            html { scroll-behavior: auto; }
-        }
-
-        /* ===========================================
-           NOTEBOOK TABS — SIGNATURE LAYOUT
-           Paper card on dark background + colorful tabs
-           =========================================== */
-
-        /* Paper card container */
-        .paper {
-            background: var(--bg-page);
-            border-radius: clamp(8px, 1.5vw, 16px);
-            box-shadow: 0 8px 40px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2);
-            position: relative;
-            margin: clamp(8px, 1.5vh, 20px) clamp(12px, 3vw, 60px);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .paper-inner {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: clamp(1.5rem, 4vw, 3.5rem);
-            padding-left: clamp(2.5rem, 5vw, 5rem);
-            overflow: hidden;
-        }
-
-        /* Binder holes on left */
-        .paper::before {
-            content: '';
-            position: absolute;
-            left: clamp(12px, 2vw, 28px);
-            top: 10%;
-            bottom: 10%;
-            width: 2px;
-            background: repeating-linear-gradient(
-                to bottom,
-                transparent 0px,
-                transparent 28px,
-                #d4d0c8 28px,
-                #d4d0c8 30px,
-                transparent 30px,
-                transparent 48px
-            );
-            opacity: 0.5;
-        }
-
-        /* Tab strip on right */
-        .tab-strip {
-            position: absolute;
-            right: calc(-1 * clamp(10px, 1.5vw, 18px));
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: clamp(4px, 0.6vh, 8px);
-            z-index: 10;
-        }
-
-        .tab {
-            width: clamp(10px, 1.5vw, 18px);
-            border-radius: 0 clamp(4px, 0.5vw, 8px) clamp(4px, 0.5vw, 8px) 0;
-            opacity: 0.6;
-            transition: opacity 0.3s ease, height 0.3s ease;
-        }
-
-        .tab.active { opacity: 1; }
-
-        /* ===========================================
-           TYPOGRAPHY
-           =========================================== */
-        h1 {
-            font-family: var(--font-display);
-            font-size: var(--title-size);
-            font-weight: 900;
-            color: var(--text-primary);
-            line-height: 1.15;
-            letter-spacing: -0.02em;
-        }
-
-        h2 {
-            font-family: var(--font-display);
-            font-size: var(--h2-size);
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-        }
-
-        h3 {
-            font-family: var(--font-body);
-            font-size: var(--h3-size);
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.3;
-        }
-
-        p, li {
-            font-family: var(--font-body);
-            font-size: var(--body-size);
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-
-        .mono {
-            font-family: var(--font-mono);
-            font-size: var(--small-size);
-        }
-
-        .section-label {
-            font-family: var(--font-body);
-            font-size: var(--caption-size);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            margin-bottom: var(--element-gap);
-        }
-
-        .italic-accent {
-            font-family: var(--font-display);
-            font-style: italic;
-            font-weight: 400;
-            color: var(--accent);
-        }
-
-        /* ===========================================
-           COMPONENT STYLES
-           =========================================== */
-
-        /* Grid layouts */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--content-gap);
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: var(--content-gap);
-        }
-
-        /* Card component */
-        .card {
-            background: white;
-            border-radius: clamp(6px, 1vw, 12px);
-            padding: clamp(0.8rem, 2vw, 1.5rem);
-            border: 1px solid #e8e4dc;
-            transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-
-        .card-accent {
-            border-top: 3px solid var(--card-color, var(--tab-mint));
-        }
-
-        /* Tag/badge */
-        .tag {
-            display: inline-block;
-            font-family: var(--font-body);
-            font-size: var(--caption-size);
-            font-weight: 700;
-            padding: 0.15em 0.6em;
-            border-radius: 100px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        /* Divider line */
-        .divider {
-            width: clamp(40px, 8vw, 80px);
-            height: 2px;
-            background: var(--text-primary);
-            margin: var(--element-gap) 0;
-            opacity: 0.2;
-        }
-
-        /* Question card */
-        .question-card {
-            background: white;
-            border-left: 4px solid var(--accent);
-            border-radius: 0 clamp(6px, 1vw, 12px) clamp(6px, 1vw, 12px) 0;
-            padding: clamp(1rem, 2vw, 1.5rem);
-            margin: var(--element-gap) 0;
-        }
-
-        /* Comparison columns */
-        .compare-good {
-            background: #f0faf4;
-            border-top: 3px solid var(--tab-mint);
-        }
-
-        .compare-bad {
-            background: #fef5f5;
-            border-top: 3px solid var(--tab-coral);
-        }
-
-        /* Timeline step */
-        .step {
-            display: flex;
-            align-items: flex-start;
-            gap: clamp(0.5rem, 1.5vw, 1rem);
-            margin-bottom: clamp(0.3rem, 0.8vh, 0.6rem);
-        }
-
-        .step-num {
-            flex-shrink: 0;
-            width: clamp(24px, 3vw, 36px);
-            height: clamp(24px, 3vw, 36px);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-body);
-            font-size: var(--small-size);
-            font-weight: 700;
-            color: white;
-        }
-
-        /* Big stat callout */
-        .stat-big {
-            font-family: var(--font-display);
-            font-size: clamp(2.5rem, 6vw, 5rem);
-            font-weight: 900;
-            line-height: 1;
-        }
-
-        .stat-label {
-            font-family: var(--font-body);
-            font-size: var(--small-size);
-            color: var(--text-muted);
-            margin-top: 0.2em;
-        }
-
-        /* Command box */
-        .cmd-box {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3em;
-            font-family: var(--font-mono);
-            font-size: var(--small-size);
-            background: #f0ede6;
-            padding: 0.2em 0.6em;
-            border-radius: 4px;
-            border: 1px solid #ddd8ce;
-        }
-
-        /* Layer row */
-        .layer-row {
-            display: flex;
-            align-items: center;
-            gap: clamp(0.5rem, 1.5vw, 1rem);
-            padding: clamp(0.5rem, 1.2vw, 0.8rem) 0;
-            border-bottom: 1px solid #e8e4dc;
-        }
-
-        .layer-row:last-child { border-bottom: none; }
-
-        .layer-icon {
-            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
-            flex-shrink: 0;
-        }
-
-        .layer-badge {
-            font-size: var(--caption-size);
-            padding: 0.15em 0.5em;
-            border-radius: 100px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        /* Capacity bar */
-        .capacity-bar {
-            height: clamp(20px, 3vh, 32px);
-            background: #e8e4dc;
-            border-radius: 100px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .capacity-fill {
-            height: 100%;
-            border-radius: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-body);
-            font-size: var(--caption-size);
-            font-weight: 700;
-            color: white;
-            transition: width 0.8s var(--ease-out-expo);
-        }
-
-        /* ===========================================
-           ANIMATIONS
-           =========================================== */
-        .reveal {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity var(--duration-normal) var(--ease-out-expo),
-                        transform var(--duration-normal) var(--ease-out-expo);
-        }
-
-        .slide.visible .reveal {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .reveal:nth-child(1) { transition-delay: 0.05s; }
-        .reveal:nth-child(2) { transition-delay: 0.12s; }
-        .reveal:nth-child(3) { transition-delay: 0.2s; }
-        .reveal:nth-child(4) { transition-delay: 0.28s; }
-        .reveal:nth-child(5) { transition-delay: 0.36s; }
-        .reveal:nth-child(6) { transition-delay: 0.44s; }
-        .reveal:nth-child(7) { transition-delay: 0.52s; }
-
-        /* Slide-in from left */
-        .reveal-left {
-            opacity: 0;
-            transform: translateX(-30px);
-            transition: opacity 0.5s var(--ease-out-expo), transform 0.5s var(--ease-out-expo);
-        }
-        .slide.visible .reveal-left { opacity: 1; transform: translateX(0); }
-
-        /* Scale in */
-        .reveal-scale {
-            opacity: 0;
-            transform: scale(0.92);
-            transition: opacity 0.5s, transform 0.5s var(--ease-out-expo);
-        }
-        .slide.visible .reveal-scale { opacity: 1; transform: scale(1); }
-
-        /* ===========================================
-           TITLE SLIDE — special dark layout
-           =========================================== */
-        .title-slide {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2b2b2b 50%, #1a1a1a 100%);
-        }
-
-        .title-slide .paper {
-            background: transparent;
-            box-shadow: none;
-        }
-
-        .title-slide .paper::before { display: none; }
-
-        .title-slide h1 {
-            color: var(--bg-page);
-            font-size: clamp(2.5rem, 7vw, 5rem);
-        }
-
-        .title-slide p { color: #aaa; }
-
-        .title-accent-line {
-            width: clamp(60px, 10vw, 120px);
-            height: 3px;
-            background: var(--accent);
-            margin: clamp(0.5rem, 1.5vh, 1.2rem) 0;
-        }
-
-        /* Decorative circles on title */
-        .title-deco {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.08;
-        }
-
-        /* ===========================================
-           SECTION DIVIDER SLIDE — with background images
-           =========================================== */
-        .section-slide .paper {
-            background: var(--section-color, var(--tab-mint));
-            justify-content: flex-end;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .section-slide .paper::before { display: none; }
-
-        /* Section background image */
-        .section-slide .section-bg {
-            position: absolute;
-            inset: 0;
-            background-size: cover;
-            background-position: center;
-            opacity: 0.18;
-            mix-blend-mode: multiply;
-            filter: grayscale(30%);
-            transition: opacity 0.6s ease;
-        }
-
-        .section-slide:hover .section-bg {
-            opacity: 0.25;
-        }
-
-        .section-slide .section-num {
-            font-family: var(--font-display);
-            font-size: clamp(4rem, 12vw, 10rem);
-            font-weight: 900;
-            color: rgba(0,0,0,0.08);
-            position: absolute;
-            top: clamp(0.5rem, 2vh, 2rem);
-            right: clamp(1rem, 3vw, 3rem);
-            line-height: 1;
-            z-index: 2;
-        }
-
-        .section-slide h2 {
-            font-size: clamp(1.8rem, 5vw, 3rem);
-            position: relative;
-            z-index: 2;
-        }
-
-        .section-slide p {
-            color: rgba(0,0,0,0.5);
-            position: relative;
-            z-index: 2;
-        }
-
-        /* ===========================================
-           SLIDE IMAGES — decorative side images
-           =========================================== */
-        .slide-img-wrapper {
-            position: absolute;
-            border-radius: clamp(6px, 1vw, 12px);
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            z-index: 1;
-        }
-
-        .slide-img-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        /* Title slide background image */
-        .title-bg-img {
-            position: absolute;
-            inset: 0;
-            background-size: cover;
-            background-position: center;
-            opacity: 0.12;
-        }
-
-        /* Floating image card on content slides */
-        .float-img {
-            position: absolute;
-            right: clamp(2rem, 5vw, 5rem);
-            bottom: clamp(1rem, 3vh, 3rem);
-            width: clamp(120px, 18vw, 240px);
-            height: clamp(90px, 14vw, 180px);
-            border-radius: clamp(8px, 1vw, 16px);
-            overflow: hidden;
-            opacity: 0.7;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.1);
-            transition: opacity 0.4s ease, transform 0.4s ease;
-        }
-
-        .float-img:hover {
-            opacity: 0.9;
-            transform: scale(1.03);
-        }
-
-        .float-img img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        @media (max-width: 800px) {
-            .float-img { display: none; }
-        }
-
-        /* ===========================================
-           PROGRESS BAR
-           =========================================== */
-        .progress-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 3px;
-            background: var(--accent);
-            z-index: 1000;
-            transition: width 0.3s ease;
-        }
-
-        /* ===========================================
-           NAV DOTS
-           =========================================== */
-        .nav-dots {
-            position: fixed;
-            right: clamp(8px, 1.5vw, 20px);
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            z-index: 1000;
-        }
-
-        .nav-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: none;
-            padding: 0;
-        }
-
-        .nav-dot.active {
-            background: var(--accent);
-            transform: scale(1.3);
-        }
-
-        .nav-dot:hover { background: rgba(255,255,255,0.6); }
-
-        /* ===========================================
-           KEYBOARD HINT
-           =========================================== */
-        .keyboard-hint {
-            position: fixed;
-            bottom: clamp(8px, 1.5vh, 16px);
-            right: clamp(8px, 1.5vw, 20px);
-            font-family: var(--font-body);
-            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
-            color: rgba(255,255,255,0.3);
-            z-index: 1000;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day02 · 上下文窗口运作原理 V3 · 穹狼科创</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg-deep: #0a0e1a;
+    --bg-card: #111827;
+    --bg-panel: #0d1225;
+    --bg-slot: #1a2235;
+    --border-dim: #1e293b;
+    --border-active: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-dim: #475569;
+
+    --c-system: #8b5cf6;
+    --c-memory: #ec4899;
+    --c-global-md: #06b6d4;
+    --c-project-md: #3b82f6;
+    --c-rules: #10b981;
+    --c-mcp-def: #14b8a6;
+    --c-user: #f59e0b;
+    --c-ai: #6366f1;
+    --c-read: #84cc16;
+    --c-tool: #f97316;
+    --c-mcp-result: #2dd4bf;
+    --c-skills: #f43f5e;
+    --c-api: #ef4444;
+    --c-compact: #06b6d4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -20%;
+    background:
+      radial-gradient(ellipse 600px 400px at 15% 25%, rgba(139,92,246,0.06), transparent),
+      radial-gradient(ellipse 500px 500px at 85% 55%, rgba(6,182,212,0.05), transparent),
+      radial-gradient(ellipse 400px 300px at 50% 85%, rgba(59,130,246,0.04), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== Main Layout ===== */
+  .stage {
+    position: relative;
+    z-index: 1;
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 52px 1fr 36px;
+    grid-template-columns: 220px 1fr 240px;
+    gap: 0;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-dim);
+  }
+  .header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--c-global-md), var(--c-project-md));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .phase-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.4s;
+  }
+  .phase-tag.boot { background: rgba(139,92,246,0.15); color: var(--c-system); }
+  .phase-tag.chat { background: rgba(245,158,11,0.15); color: var(--c-user); }
+  .phase-tag.tool { background: rgba(16,185,129,0.15); color: var(--c-rules); }
+  .phase-tag.skill { background: rgba(244,63,94,0.15); color: var(--c-skills); }
+  .phase-tag.api { background: rgba(239,68,68,0.15); color: var(--c-api); }
+  .phase-tag.overflow { background: rgba(244,63,94,0.15); color: var(--c-skills); }
+  .phase-tag.reinject { background: rgba(139,92,246,0.15); color: var(--c-system); }
+  .phase-tag.manage { background: rgba(6,182,212,0.15); color: var(--c-global-md); }
+  .step-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    font-size: 11px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border-dim);
+    padding: 0 24px;
+  }
+  .footer kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: var(--bg-slot);
+    color: var(--text-secondary);
+  }
+
+  /* ===== Left Panel: Sources ===== */
+  .panel-sources {
+    border-right: 1px solid var(--border-dim);
+    padding: 12px 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .panel-sources .panel-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .source-group {
+    margin-bottom: 6px;
+  }
+  .source-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    padding: 6px 8px 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .source-group-label .group-icon {
+    font-size: 12px;
+  }
+  .source-group-label .timing-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    margin-left: auto;
+  }
+  .timing-badge.always { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+  .timing-badge.trigger { background: rgba(244,63,94,0.15); color: #fda4af; }
+  .timing-badge.demand { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  .timing-badge.never { background: rgba(239,68,68,0.15); color: #fca5a5; }
+
+  .source-group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-dim);
+    margin-left: 6px;
+  }
+  .timing-badge ~ .source-group-label::after { display: none; }
+
+  .source-group + .source-group {
+    border-top: 1px solid var(--border-dim);
+    padding-top: 6px;
+    margin-top: 2px;
+  }
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+    transition: all 0.4s ease;
+    position: relative;
+  }
+  .source-item .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: all 0.4s;
+    opacity: 0.3;
+  }
+  .source-item.active {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.03);
+  }
+  .source-item.active .dot {
+    opacity: 1;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .source-item.loaded {
+    color: var(--text-secondary);
+  }
+  .source-item.loaded .dot {
+    opacity: 0.7;
+  }
+  .source-item .icon-svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.4;
+    transition: opacity 0.4s;
+  }
+  .source-item.active .icon-svg,
+  .source-item.loaded .icon-svg {
+    opacity: 1;
+  }
+  /* Strikethrough for "never enters context" items */
+  .source-item.never-enters {
+    text-decoration: line-through;
+    text-decoration-color: rgba(239,68,68,0.5);
+  }
+  .source-item.never-enters .dot {
+    opacity: 0.2;
+  }
+
+  /* ===== Center Panel: Context Window ===== */
+  .panel-context {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .context-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+  .context-header .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+  }
+
+  /* Loading queue bar */
+  .queue-bar {
+    display: flex;
+    gap: 2px;
+    height: 5px;
+    flex-shrink: 0;
+    margin-bottom: 8px;
+  }
+  .queue-cell {
+    flex: 1;
+    border-radius: 2px;
+    background: var(--bg-slot);
+    transition: background 0.5s, box-shadow 0.5s;
+  }
+  .queue-cell.filled {
+    box-shadow: 0 0 4px rgba(255,255,255,0.08);
+  }
+
+  /* Context container */
+  .context-container {
+    flex: 1;
+    border: 1.5px solid var(--border-dim);
+    border-radius: 12px;
+    background: var(--bg-panel);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    transition: border-color 0.5s, box-shadow 0.5s;
+    position: relative;
+  }
+  .context-container.warning {
+    border-color: #ef4444;
+    box-shadow: 0 0 20px rgba(239,68,68,0.2), inset 0 0 30px rgba(239,68,68,0.05);
+  }
+  .context-container.overflow-active {
+    border-color: #ef4444;
+    box-shadow: 0 0 40px rgba(239,68,68,0.3), inset 0 0 50px rgba(239,68,68,0.08);
+  }
+
+  /* Context blocks */
+  .ctx-block {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+    transition: all 0.5s ease;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .ctx-block .lock-icon {
+    flex-shrink: 0;
+    opacity: 0.8;
+  }
+  .ctx-block .block-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .ctx-block .block-label .label-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+  .ctx-block .block-preview {
+    display: block;
+    font-size: 9px;
+    opacity: 0.55;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    line-height: 1.3;
+  }
+  .ctx-block .block-size {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  /* Block type styles */
+  .ctx-block.type-system { background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.3); color: #c4b5fd; }
+  .ctx-block.type-memory { background: rgba(236,72,153,0.1); border-color: rgba(236,72,153,0.3); color: #f9a8d4; }
+  .ctx-block.type-global-md { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.3); color: #67e8f9; }
+  .ctx-block.type-project-md { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: #93c5fd; }
+  .ctx-block.type-rules { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
+  .ctx-block.type-mcp-def { background: rgba(20,184,166,0.1); border-color: rgba(20,184,166,0.3); color: #5eead4; }
+  .ctx-block.type-user { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: #fcd34d; border-style: dashed; opacity: 0.7; }
+  .ctx-block.type-ai { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.2); color: #a5b4fc; border-style: dashed; opacity: 0.7; }
+  .ctx-block.type-read { background: rgba(132,204,22,0.12); border-color: rgba(132,204,22,0.3); color: #bef264; }
+  .ctx-block.type-tool { background: rgba(249,115,22,0.12); border-color: rgba(249,115,22,0.3); color: #fdba74; }
+  .ctx-block.type-mcp-result { background: rgba(45,212,191,0.12); border-color: rgba(45,212,191,0.3); color: #5eead4; }
+  .ctx-block.type-skills { background: rgba(244,63,94,0.12); border-color: rgba(244,63,94,0.3); color: #fda4af; }
+  .ctx-block.type-compact { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.3); color: #67e8f9; }
+
+  .ctx-block.big {
+    min-height: 44px;
+    padding: 10px;
+    align-items: flex-start;
+  }
+  .ctx-block.huge {
+    min-height: 60px;
+    padding: 12px;
+    align-items: flex-start;
+  }
+
+  /* Permanent layer shield glow */
+  .ctx-block.shielded {
+    animation: shieldPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes shieldPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(99,102,241,0.3), inset 0 0 8px rgba(99,102,241,0.1); }
+    50% { box-shadow: 0 0 20px rgba(99,102,241,0.5), inset 0 0 15px rgba(99,102,241,0.2); }
+  }
+
+  .ctx-block.fly-in {
+    animation: flyIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes flyIn {
+    from { transform: translateX(-60px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .ctx-block.shredding {
+    animation: shred 0.8s ease-in forwards;
+  }
+  @keyframes shred {
+    0% { transform: translateX(0) scaleY(1); opacity: 1; filter: blur(0); }
+    30% { transform: translateX(10px) scaleY(0.8); opacity: 0.7; filter: blur(1px); border-color: #ef4444; }
+    60% { transform: translateX(-20px) scaleY(0.4); opacity: 0.3; filter: blur(3px); }
+    100% { transform: translateX(40px) scaleY(0); opacity: 0; filter: blur(6px); max-height: 0; padding: 0; margin: 0; border-width: 0; }
+  }
+
+  .ctx-block.compacting {
+    animation: compactShrink 0.6s ease-in forwards;
+  }
+  @keyframes compactShrink {
+    0% { transform: scaleY(1); opacity: 1; }
+    100% { transform: scaleY(0); opacity: 0; max-height: 0; padding: 0; margin: 0; border-width: 0; }
+  }
+
+  /* Capacity bar */
+  .capacity-bar-wrap {
+    flex-shrink: 0;
+    margin-top: 8px;
+  }
+  .capacity-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .capacity-bar {
+    height: 7px;
+    border-radius: 3px;
+    background: var(--bg-slot);
+    overflow: hidden;
+    position: relative;
+  }
+  .capacity-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1), background 0.5s;
+    background: linear-gradient(90deg, var(--c-project-md), var(--c-global-md));
+  }
+  .capacity-fill.danger {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+    box-shadow: 0 0 10px rgba(239,68,68,0.4);
+  }
+
+  /* ===== Right Panel: Chat ===== */
+  .panel-chat {
+    border-left: 1px solid var(--border-dim);
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-chat .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding-right: 4px;
+  }
+  .chat-bubble {
+    padding: 7px 10px;
+    border-radius: 9px;
+    font-size: 11px;
+    line-height: 1.6;
+    max-width: 95%;
+    animation: bubbleIn 0.4s ease forwards;
+  }
+  @keyframes bubbleIn {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .chat-bubble.user {
+    align-self: flex-end;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.25);
+    color: #fcd34d;
+  }
+  .chat-bubble.ai {
+    align-self: flex-start;
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.2);
+    color: #c7d2fe;
+  }
+  .chat-bubble .bubble-tag {
+    font-size: 9px;
+    font-weight: 700;
+    opacity: 0.5;
+    margin-bottom: 2px;
+  }
+
+  /* ===== Step description overlay ===== */
+  .step-desc {
+    position: fixed;
+    bottom: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(17,24,39,0.95);
+    border: 1px solid var(--border-active);
+    border-radius: 10px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    z-index: 100;
+    max-width: 700px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  /* ===== API floating callout ===== */
+  .api-callout {
+    position: fixed;
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s, transform 0.5s;
+    transform: translateY(10px);
+  }
+  .api-callout.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .api-callout-card {
+    background: rgba(17,24,39,0.97);
+    border: 2px solid rgba(239,68,68,0.5);
+    border-radius: 14px;
+    padding: 16px 20px;
+    width: 320px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 30px rgba(239,68,68,0.15), 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .api-callout-card h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fca5a5;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .api-callout-card h3 .api-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(239,68,68,0.2);
+    font-size: 12px;
+  }
+  .api-callout-card .api-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .api-flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+  .api-flow-step .flow-num {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .api-flow-step.in-context {
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.2);
+    color: #c7d2fe;
+  }
+  .api-flow-step.in-context .flow-num {
+    background: rgba(99,102,241,0.3);
+    color: #a5b4fc;
+  }
+  .api-flow-step.outside {
+    background: rgba(239,68,68,0.08);
+    border: 1px dashed rgba(239,68,68,0.3);
+    color: #fca5a5;
+  }
+  .api-flow-step.outside .flow-num {
+    background: rgba(239,68,68,0.25);
+    color: #fca5a5;
+  }
+  .api-flow-step .flow-tag {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .flow-tag.tag-in { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+  .flow-tag.tag-out { background: rgba(239,68,68,0.2); color: #fca5a5; }
+
+  /* Connection line from API callout to context window */
+  .api-connector {
+    position: fixed;
+    z-index: 149;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .api-connector.visible { opacity: 1; }
+
+  /* ===== Boot & Summary overlays ===== */
+  .boot-overlay, .summary-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,26,0.95);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s;
+    backdrop-filter: blur(8px);
+  }
+  .boot-overlay.visible, .summary-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .boot-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-active);
+    border-radius: 16px;
+    padding: 28px 36px;
+    max-width: 720px;
+    width: 90%;
+  }
+  .boot-card h2 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+  .boot-card h2 span {
+    background: linear-gradient(135deg, var(--c-global-md), var(--c-project-md));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .assembled-prompt {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    overflow-y: auto;
+    max-height: 55vh;
+  }
+  .assembled-prompt .asm-section {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border-dim);
+  }
+  .assembled-prompt .asm-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .assembled-prompt .asm-tag {
+    font-weight: 700;
+    margin-bottom: 3px;
+    display: block;
+  }
+  .asm-tag.tag-system { color: var(--c-system); }
+  .asm-tag.tag-global { color: var(--c-global-md); }
+  .asm-tag.tag-project { color: var(--c-project-md); }
+  .asm-tag.tag-rules { color: var(--c-rules); }
+  .asm-tag.tag-memory { color: var(--c-memory); }
+  .asm-tag.tag-mcp { color: var(--c-mcp-def); }
+  .asm-tag.tag-user { color: var(--c-user); }
+  .assembled-prompt .asm-content {
+    color: var(--text-secondary);
+    padding-left: 12px;
+  }
+  .assembled-prompt .asm-redacted {
+    color: var(--text-dim);
+    font-style: italic;
+    padding-left: 12px;
+  }
+  .boot-hint {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-active);
+    border-radius: 16px;
+    padding: 36px 44px;
+    max-width: 720px;
+    width: 90%;
+  }
+  .summary-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--c-global-md), var(--c-project-md));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .summary-card .point {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+  .summary-card .point .num {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(59,130,246,0.15);
+    color: var(--c-project-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-dim); border-radius: 2px; }
+
+  /* Particles for overflow */
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  /* Shield overlay */
+  .shield-overlay {
+    position: absolute;
+    inset: -2px;
+    border-radius: 9px;
+    border: 2px solid rgba(99,102,241,0.6);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+    box-shadow: 0 0 15px rgba(99,102,241,0.4), inset 0 0 15px rgba(99,102,241,0.1);
+  }
+  .ctx-block.shielded .shield-overlay {
+    opacity: 1;
+  }
+
+  /* Skills trigger flash effect */
+  @keyframes skillFlash {
+    0% { box-shadow: 0 0 0 0 rgba(244,63,94,0.6); }
+    50% { box-shadow: 0 0 20px 4px rgba(244,63,94,0.4); }
+    100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); }
+  }
+  .source-item.skill-triggered {
+    animation: skillFlash 0.8s ease-out;
+  }
+</style>
 </head>
 <body>
-    <!-- Progress Bar -->
-    <div class="progress-bar" id="progressBar"></div>
 
-    <!-- Navigation Dots -->
-    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+<div class="stage">
+  <div class="header">
+    <h1>Day02 · 上下文窗口运作原理 V3</h1>
+    <div class="header-right">
+      <span class="phase-tag boot" id="phaseTag">BOOT</span>
+      <span class="step-counter" id="stepCounter">0 / 26</span>
+    </div>
+  </div>
 
-    <!-- Keyboard Hint -->
-    <div class="keyboard-hint">← → Space</div>
+  <div class="panel-sources" id="panelSources">
+    <div class="panel-title">加载时机 / Loading</div>
+  </div>
 
-    <!-- ===================================================
-         SLIDE 1: TITLE
-         =================================================== -->
-    <section class="slide title-slide" data-section="intro">
-        <div class="title-bg-img" style="background-image:url('https://images.pexels.com/photos/17483867/pexels-photo-17483867/free-photo-of-an-artist-s-illustration-of-artificial-intelligence-ai-this-image-represents-how-machine-learning-is-inspired-by-neuroscience-and-the-human-brain-it-was-created-by-novoto-studio-as-par.jpeg?auto=compress&cs=tinysrgb&w=1600');"></div>
-        <div class="title-deco" style="width:clamp(200px,30vw,500px);height:clamp(200px,30vw,500px);top:-5%;right:-5%;background:var(--tab-mint);"></div>
-        <div class="title-deco" style="width:clamp(150px,20vw,350px);height:clamp(150px,20vw,350px);bottom:5%;right:15%;background:var(--tab-lavender);"></div>
-        <div class="title-deco" style="width:clamp(100px,15vw,250px);height:clamp(100px,15vw,250px);bottom:20%;left:5%;background:var(--tab-pink);"></div>
-        <div class="paper">
-            <div class="paper-inner" style="justify-content:center;">
-                <p class="section-label reveal" style="color:var(--tab-mint);">DAY 02 · 穹狼科创内训</p>
-                <h1 class="reveal">AI 的记忆机制</h1>
-                <div class="title-accent-line reveal"></div>
-                <p class="reveal" style="font-family:var(--font-display);font-style:italic;font-size:var(--h3-size);color:#999;max-width:600px;">
-                    CLAUDE.md 就是你写给 Claude 的工作手册<br>——你写什么，它就按什么来
-                </p>
-                <p class="reveal" style="margin-top:auto;padding-top:clamp(1rem,3vh,2rem);font-size:var(--caption-size);color:#666;">
-                    穹狼科创 · Claude Code 内训课程 · 认知与环境
-                </p>
-            </div>
-        </div>
-    </section>
+  <div class="panel-context">
+    <div class="context-header">
+      <span class="panel-title">Context Window / AI 的脑子</span>
+      <span id="tokenCount" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);">0 tokens</span>
+    </div>
+    <div class="queue-bar" id="queueBar"></div>
+    <div class="context-container" id="contextContainer"></div>
+    <div class="capacity-bar-wrap">
+      <div class="capacity-label">
+        <span>已用容量</span>
+        <span id="capacityPct">0%</span>
+      </div>
+      <div class="capacity-bar">
+        <div class="capacity-fill" id="capacityFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
 
-    <!-- ===================================================
-         SLIDE 2: 学习目标
-         =================================================== -->
-    <section class="slide" data-section="intro">
-        <div class="paper">
-            <div class="float-img"><img src="https://images.pexels.com/photos/8293635/pexels-photo-8293635.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Checklist"></div>
-            <div class="tab-strip">
-                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
-                <div class="tab" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-mint);">Overview</p>
-                <h2 class="reveal">学习目标</h2>
-                <div class="divider reveal"></div>
-                <div style="display:flex;flex-direction:column;gap:var(--element-gap);margin-top:var(--content-gap);">
-                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
-                        <span style="font-size:clamp(1rem,2vw,1.4rem);">💡</span>
-                        <p>理解"上下文"的概念：Claude 只知道你告诉它的事</p>
-                    </div>
-                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
-                        <span style="font-size:clamp(1rem,2vw,1.4rem);">📝</span>
-                        <p>学会用 CLAUDE.md 给 Claude 设定身份、规则和模板</p>
-                    </div>
-                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
-                        <span style="font-size:clamp(1rem,2vw,1.4rem);">⌨️</span>
-                        <p>掌握核心命令：<span class="cmd-box">/memory</span> <span class="cmd-box">/compact</span> <span class="cmd-box">/new</span> <span class="cmd-box">/resume</span> <span class="cmd-box">/model</span></p>
-                    </div>
-                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
-                        <span style="font-size:clamp(1rem,2vw,1.4rem);">📂</span>
-                        <p>理解三层规则体系：全局 → 项目 → 岗位</p>
-                    </div>
-                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
-                        <span style="font-size:clamp(1rem,2vw,1.4rem);">🧠</span>
-                        <p>理解 Auto-memory 自动记忆机制</p>
-                    </div>
-                    <div class="reveal" style="display:flex;align-items:center;gap:0.6em;">
-                        <span style="font-size:clamp(1rem,2vw,1.4rem);">✅</span>
-                        <p>能为自己的岗位写一份基础版 CLAUDE.md</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <div class="panel-chat">
+    <div class="panel-title">Chat / 你看到的</div>
+    <div class="chat-messages" id="chatMessages"></div>
+  </div>
 
-    <!-- ===================================================
-         SLIDE 3: 受训人员
-         =================================================== -->
-    <section class="slide" data-section="intro">
-        <div class="paper">
-            <div class="float-img"><img src="https://images.pexels.com/photos/3184293/pexels-photo-3184293.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Teamwork"></div>
-            <div class="tab-strip">
-                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
-                <div class="tab" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-lavender);">Audience</p>
-                <h2 class="reveal">三类角色 · 全程参与 · 学完就用</h2>
-                <div class="divider reveal"></div>
-                <div class="grid-3 reveal-scale" style="margin-top:var(--content-gap);">
-                    <div class="card card-accent" style="--card-color:var(--tab-mint);">
-                        <p class="section-label" style="color:var(--tab-mint);">管理层</p>
-                        <h3>周报 · 分析 · 规划</h3>
-                        <p style="margin-top:0.5em;font-size:var(--small-size);">统一汇报格式<br>自动套用数据模板</p>
-                    </div>
-                    <div class="card card-accent" style="--card-color:var(--tab-coral);">
-                        <p class="section-label" style="color:var(--tab-coral);">销售</p>
-                        <h3>咨询 · 话术 · 文案</h3>
-                        <p style="margin-top:0.5em;font-size:var(--small-size);">标准话术库<br>品牌调性统一</p>
-                    </div>
-                    <div class="card card-accent" style="--card-color:var(--tab-lavender);">
-                        <p class="section-label" style="color:var(--tab-lavender);">老师</p>
-                        <h3>反馈 · 教案 · 评估</h3>
-                        <p style="margin-top:0.5em;font-size:var(--small-size);">反馈模板统一<br>课程知识准确</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <div class="footer">
+    <span><kbd>&rarr;</kbd> 下一步</span>
+    <span><kbd>&larr;</kbd> 上一步</span>
+    <span><kbd>R</kbd> 重置</span>
+    <span>点击页面也可以前进</span>
+  </div>
+</div>
 
-    <!-- ===================================================
-         SECTION: 提问引入
-         =================================================== -->
-    <section class="slide section-slide" style="--section-color:var(--tab-mint);">
-        <div class="paper">
-            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/5819305/pexels-photo-5819305.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
-            <span class="section-num">01</span>
-            <div class="paper-inner" style="justify-content:flex-end;">
-                <h2 class="reveal">提问引入</h2>
-                <p class="reveal" style="font-size:var(--h3-size);">从一个简单的问题开始</p>
-            </div>
-        </div>
-    </section>
+<div class="step-desc" id="stepDesc"></div>
 
-    <!-- ===================================================
-         SLIDE 5: 问题一
-         =================================================== -->
-    <section class="slide" data-section="questions">
-        <div class="paper">
-            <div class="tab-strip">
-                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-mint);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-mint);">Question 01</p>
-                <div class="question-card reveal">
-                    <h2 style="font-size:var(--h3-size);">❓ OpenClaw 和豆包、DeepSeek 这些对话框有什么区别？</h2>
-                </div>
-                <div class="reveal" style="margin-top:var(--content-gap);background:#f5faf7;border-radius:8px;padding:clamp(0.8rem,2vw,1.2rem);border-left:3px solid var(--tab-mint);">
-                    <p style="color:var(--tab-sage);font-weight:700;font-size:var(--small-size);margin-bottom:0.3em;">💡 答案</p>
-                    <p><strong>不是豆包笨——是没人告诉它。</strong></p>
-                    <p>OpenClaw 之所以懂穹狼，是因为有人给它写了一份"手册"。</p>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- API Callout (positioned dynamically) -->
+<div class="api-callout" id="apiCallout">
+  <div class="api-callout-card">
+    <h3><span class="api-x">✕</span> API 调用：发生在上下文窗口之外</h3>
+    <div class="api-flow">
+      <div class="api-flow-step in-context">
+        <span class="flow-num">1</span>
+        <span>AI <strong>写</strong>代码 → 在上下文内（AI 的输出）</span>
+        <span class="flow-tag tag-in">窗口内</span>
+      </div>
+      <div class="api-flow-step outside">
+        <span class="flow-num">2</span>
+        <span>代码<strong>执行</strong>、调用外部 API → 在上下文外</span>
+        <span class="flow-tag tag-out">窗口外</span>
+      </div>
+      <div class="api-flow-step in-context">
+        <span class="flow-num">3</span>
+        <span>执行<strong>结果</strong>返回 → 回到上下文内</span>
+        <span class="flow-tag tag-in">窗口内</span>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <!-- ===================================================
-         SLIDE 6: 核心区别
-         =================================================== -->
-    <section class="slide" data-section="questions">
-        <div class="paper">
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
-                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-coral);">Key Difference</p>
-                <h2 class="reveal" style="font-size:var(--h3-size);">🔑 最根本的区别是什么？</h2>
-                <div class="divider reveal"></div>
-                <div class="grid-2 reveal-scale" style="margin-top:var(--content-gap);">
-                    <div class="card compare-bad">
-                        <p class="section-label" style="color:var(--tab-coral);">❌ 豆包 / DeepSeek</p>
-                        <ul style="list-style:none;padding:0;">
-                            <li style="padding:0.2em 0;">没有记忆机制</li>
-                            <li style="padding:0.2em 0;">没法设定系统提示词</li>
-                            <li style="padding:0.2em 0;">每次打开不知道你是谁</li>
-                            <li style="padding:0.2em 0;">上次说的话全忘了</li>
-                        </ul>
-                    </div>
-                    <div class="card compare-good">
-                        <p class="section-label" style="color:var(--tab-mint);">✅ OpenClaw / Claude Code</p>
-                        <ul style="list-style:none;padding:0;">
-                            <li style="padding:0.2em 0;">有记忆机制和规则机制</li>
-                            <li style="padding:0.2em 0;">可设定系统提示词</li>
-                            <li style="padding:0.2em 0;">写规则文件自动加载</li>
-                            <li style="padding:0.2em 0;">越用越懂你</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- Boot Complete Overlay -->
+<div class="boot-overlay" id="bootOverlay">
+  <div class="boot-card">
+    <h2><span>开机完成！</span> 组装后的完整提示词：</h2>
+    <div class="assembled-prompt">
+      <div class="asm-section">
+        <span class="asm-tag tag-system">[System Prompt]</span>
+        <div class="asm-redacted">████████ Anthropic 编写，对用户隐藏 ████████</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-global"># claudeMd（全局 ~/.claude/CLAUDE.md）</span>
+        <div class="asm-content">永远用中文沟通，无论我用什么语言提问。<br>不客套、不废话——不要"好的！""当然可以！"这类开场白。</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-project"># claudeMd（项目 CLAUDE.md）</span>
+        <div class="asm-content">穹狼科创内部 Claude Code 培训课程的教案、课件、素材项目。<br>培训对象：管理层 + 教学骨干，电脑纯小白……</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-rules"># rules（.claude/rules/课后反馈.md）</span>
+        <div class="asm-content">课后反馈用温暖正面的语气，不含负面评价。<br>格式：开头称呼家长，中间描述课堂表现，结尾鼓励……</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-mcp"># MCP（全量加载）</span>
+        <div class="asm-content">Read(path), Bash(cmd), Edit(file, old, new),<br>mcp-dianping(query), mcp-calendar(date)……<br><em style="opacity:0.5">（所有工具的完整定义+参数+说明，一次性装入）</em></div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag" style="color:var(--c-skills)"># Skills 说明（仅名字+简介）</span>
+        <div class="asm-content">feedback — 课后反馈生成器<br>commit — Git 提交助手<br>review — 代码审查……<br><em style="opacity:0.5">（完整指令未加载，等触发后才来）</em></div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-memory"># auto memory（MEMORY.md）</span>
+        <div class="asm-content">Rocky 是少儿编程/AI 教育培训机构创始人，3 个校区。<br>偏好简洁汇报，用表格呈现数据……</div>
+      </div>
+      <div class="asm-section">
+        <span class="asm-tag tag-user"># 用户消息</span>
+        <div class="asm-content">帮我写一份乐高 EV3 课的课后反馈，给家长看的</div>
+      </div>
+    </div>
+    <div class="boot-hint">💡 Skills 只加载了名字和简介——完整指令要等 /feedback 触发后才来！&nbsp;&nbsp;点击继续 →</div>
+  </div>
+</div>
 
-    <!-- ===================================================
-         SLIDE 7: 养龙虾
-         =================================================== -->
-    <section class="slide title-slide">
-        <div class="paper">
-            <div class="float-img" style="opacity:0.5;right:clamp(1.5rem,4vw,4rem);bottom:clamp(1.5rem,4vh,4rem);width:clamp(140px,20vw,280px);height:clamp(105px,15vw,210px);"><img src="https://images.pexels.com/photos/248455/pexels-photo-248455.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Lobster"></div>
-            <div class="paper-inner" style="justify-content:center;align-items:center;text-align:center;">
-                <p class="reveal" style="font-size:clamp(3rem,8vw,6rem);">🦞</p>
-                <h1 class="reveal" style="letter-spacing:0.15em;margin-top:0.3em;">养 龙 虾</h1>
-                <div class="title-accent-line reveal" style="margin-left:auto;margin-right:auto;"></div>
-                <p class="reveal italic-accent" style="font-size:var(--h3-size);color:var(--tab-coral);max-width:500px;">
-                    它不是买回来就能用的成品
-                </p>
-                <p class="reveal" style="font-size:var(--body-size);color:#888;max-width:500px;margin-top:0.5em;">
-                    你得喂它规则、调它的配置、让它积累记忆<br>它才会越来越懂你
-                </p>
-            </div>
-        </div>
-    </section>
+<!-- Summary Overlay -->
+<div class="summary-overlay" id="summaryOverlay">
+  <div class="summary-card">
+    <h2>核心结论</h2>
+    <div class="point">
+      <div class="num">1</div>
+      <div><strong>你看到的 ≠ AI 脑子里的全部</strong><br>右栏只有对话，但中间的上下文窗口里还有 System Prompt、CLAUDE.md、工具定义等大量"隐藏信息"。</div>
+    </div>
+    <div class="point">
+      <div class="num">2</div>
+      <div><strong>三种加载时机决定了"谁在脑子里"</strong><br>🔒 开机就加载（CLAUDE.md、Rules、Memory、MCP 全部、Skills 说明）→ 一直在<br>⚡ 触发时加载（Skills 完整内容）→ 触发才来<br>📦 调用时加载（工具执行输出、文件内容）→ 取到才来</div>
+    </div>
+    <div class="point">
+      <div class="num">3</div>
+      <div><strong>MCP 开机全量加载，Skills 是唯一的"双阶段"</strong><br>MCP 开机就把所有工具的完整定义装进上下文，没有第二阶段。<br>只有 Skills 分两步：名字+简介开机就在，完整指令触发后才来。</div>
+    </div>
+    <div class="point">
+      <div class="num">4</div>
+      <div><strong>API 走另一条路——写代码 → 执行在外面 → 结果回来</strong><br>AI 写代码在上下文内，代码执行和 API 调用在上下文外面，只有执行结果回到上下文。</div>
+    </div>
+    <div class="point">
+      <div class="num">5</div>
+      <div><strong>压缩时常驻层会被清理，但会重新注入</strong><br>上下文压缩时整个窗口都会被清空。但常驻层（CLAUDE.md、Rules 等）会被重新加载回来——不是"没被删"，是"删了又回来"。这就是为什么写好 CLAUDE.md 这么重要。</div>
+    </div>
+    <div class="point">
+      <div class="num">6</div>
+      <div><strong>大文件是"容量杀手"，/compact 是急救药</strong><br>一个 35KB 的文件就能吃掉大量窗口空间。窗口快满时用 /compact 压缩。</div>
+    </div>
+  </div>
+</div>
 
-    <!-- ===================================================
-         SECTION: 上下文窗口
-         =================================================== -->
-    <section class="slide section-slide" style="--section-color:var(--tab-lavender);">
-        <div class="paper">
-            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/921294/pexels-photo-921294.png?auto=compress&cs=tinysrgb&w=1200');"></div>
-            <span class="section-num">02</span>
-            <div class="paper-inner" style="justify-content:flex-end;">
-                <h2 class="reveal">上下文窗口</h2>
-                <p class="reveal" style="font-size:var(--h3-size);">AI 的"脑子"到底是怎么运作的？</p>
-            </div>
-        </div>
-    </section>
+<script>
+// ===== SVG Icons =====
+const ICONS = {
+  system: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 6h6M5 8h4M5 10h5"/></svg>`,
+  memory: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></svg>`,
+  globalMd: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c-2 2-2 9 0 11M8 2.5c2 2 2 9 0 11"/></svg>`,
+  projectMd: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4z"/><path d="M10 2v3h3"/></svg>`,
+  rules: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L3 5v4c0 3.5 2.5 5.5 5 6.5 2.5-1 5-3 5-6.5V5z"/></svg>`,
+  mcpDef: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><circle cx="3" cy="4" r="1.5"/><circle cx="13" cy="4" r="1.5"/><circle cx="3" cy="12" r="1.5"/><circle cx="13" cy="12" r="1.5"/><path d="M4.3 5.2L6.5 6.8M9.5 6.8l2.2-1.6M4.3 10.8L6.5 9.2M9.5 9.2l2.2 1.6"/></svg>`,
+  skills: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="8,1 10,6 15,6 11,9.5 12.5,14.5 8,11.5 3.5,14.5 5,9.5 1,6 6,6"/></svg>`,
+  mcpResult: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="M5 7l2 2 4-4"/></svg>`,
+  read: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h6l3 3v9H4z"/><path d="M10 2v3h3"/><path d="M6 8h5M6 10h3"/></svg>`,
+  tool: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2.5l4 4-7 7-4-4z"/><path d="M3 13l-1 1"/><circle cx="12" cy="4" r="1"/></svg>`,
+  api: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h3l1.5-3 3 6 1.5-3h3"/></svg>`,
+  user: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5.5" r="3"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>`,
+  ai: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="2"/><circle cx="6" cy="7" r="1" fill="currentColor"/><circle cx="10" cy="7" r="1" fill="currentColor"/><path d="M6 10c1 1 3 1 4 0"/></svg>`,
+  lock: `<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>`,
+};
 
-    <!-- ===================================================
-         SLIDE 9: 什么是上下文窗口
-         =================================================== -->
-    <section class="slide" data-section="context">
-        <div class="paper">
-            <div class="float-img"><img src="https://images.pexels.com/photos/4256211/pexels-photo-4256211.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Workspace"></div>
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
-                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-lavender);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-pink);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-lavender);">Concept</p>
-                <h2 class="reveal">上下文窗口 = AI 的"工作台"</h2>
-                <p class="reveal" style="margin-top:0.3em;">它能看到的全部信息，都放在这张"工作台"上</p>
-                <div class="divider reveal"></div>
-                <div class="grid-3 reveal" style="margin-top:var(--content-gap);">
-                    <div class="card" style="text-align:center;">
-                        <p style="font-size:clamp(1.5rem,3vw,2.2rem);">📥</p>
-                        <h3 style="font-size:var(--body-size);">有限容量</h3>
-                        <p class="stat-big" style="color:var(--tab-lavender);font-size:clamp(1.5rem,4vw,2.5rem);">200K</p>
-                        <p class="stat-label">tokens ≈ 15万字</p>
-                    </div>
-                    <div class="card" style="text-align:center;">
-                        <p style="font-size:clamp(1.5rem,3vw,2.2rem);">📋</p>
-                        <h3 style="font-size:var(--body-size);">实时拼装</h3>
-                        <p style="font-size:var(--small-size);margin-top:0.5em;">每次对话都重新<br>组装内容</p>
-                    </div>
-                    <div class="card" style="text-align:center;">
-                        <p style="font-size:clamp(1.5rem,3vw,2.2rem);">🗑️</p>
-                        <h3 style="font-size:var(--body-size);">会溢出</h3>
-                        <p style="font-size:var(--small-size);margin-top:0.5em;">满了就清掉<br>早期内容</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+// ===== Source definitions (grouped by loading timing) =====
+const SOURCE_GROUPS = [
+  {
+    label: '开机就加载',
+    icon: '🔒',
+    timingClass: 'always',
+    items: [
+      { id: 'system', label: 'System Prompt', color: 'var(--c-system)', icon: ICONS.system },
+      { id: 'global-md', label: '全局 CLAUDE.md', color: 'var(--c-global-md)', icon: ICONS.globalMd },
+      { id: 'project-md', label: '项目 CLAUDE.md', color: 'var(--c-project-md)', icon: ICONS.projectMd },
+      { id: 'rules', label: 'Rules', color: 'var(--c-rules)', icon: ICONS.rules },
+      { id: 'mcp', label: 'MCP（全部）', color: 'var(--c-mcp-def)', icon: ICONS.mcpDef },
+      { id: 'skills-def', label: 'Skills 说明', color: 'var(--c-skills)', icon: ICONS.skills },
+      { id: 'memory', label: 'MEMORY.md', color: 'var(--c-memory)', icon: ICONS.memory },
+    ]
+  },
+  {
+    label: '触发时加载',
+    icon: '⚡',
+    timingClass: 'trigger',
+    items: [
+      { id: 'skills-full', label: 'Skills 完整内容', color: 'var(--c-skills)', icon: ICONS.skills },
+    ]
+  },
+  {
+    label: '调用时加载',
+    icon: '📦',
+    timingClass: 'demand',
+    items: [
+      { id: 'read', label: 'Read 文件内容', color: 'var(--c-read)', icon: ICONS.read },
+      { id: 'tool', label: 'Bash / Edit 输出', color: 'var(--c-tool)', icon: ICONS.tool },
+    ]
+  },
+  {
+    label: '不进入上下文',
+    icon: '🚫',
+    timingClass: 'never',
+    items: [
+      { id: 'api', label: 'API 调用过程', color: 'var(--c-api)', icon: ICONS.api },
+    ]
+  },
+];
+const SOURCES = SOURCE_GROUPS.flatMap(g => g.items);
 
-    <!-- ===================================================
-         SLIDE 10: 开机流程
-         =================================================== -->
-    <section class="slide" data-section="context">
-        <div class="paper">
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
-                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-lavender);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-lavender);">Boot Sequence</p>
-                <h2 class="reveal">上下文窗口是怎么"开机"的</h2>
-                <div class="divider reveal"></div>
-                <div style="margin-top:var(--content-gap);">
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-mint);">1</div><div><strong>你发了一条消息</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">消息进入窗口，触发组装流程</span></div></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-mint);">2</div><div><strong>System Prompt 加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">Anthropic 的出厂指令，看不到也改不了</span></div></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">3</div><div><strong>全局 CLAUDE.md 加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">你自己写的个人规范</span></div></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">4</div><div><strong>项目 CLAUDE.md 加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">公司级别的规则——穹狼的信息都在这</span></div></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-lavender);">5</div><div><strong>Rules 文件加载</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">岗位级别的细则——反馈规范、话术规范等</span></div></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-lavender);">6</div><div><strong>Memory 加载 → 开机完成</strong><br><span style="font-size:var(--small-size);color:var(--text-muted);">所有手册拼好了，Claude 准备就绪</span></div></div>
-                </div>
-            </div>
-        </div>
-    </section>
+// ===== Step definitions =====
+const STEPS = [
+  // === BOOT PHASE ===
+  // Step 0: blank
+  {
+    desc: '三栏就位，上下文窗口是空的容器。左栏按"加载时机"分了四组。',
+    phase: 'boot', phaseLabel: 'READY',
+    tokens: 0, pct: 0,
+  },
+  // Step 1: user message
+  {
+    desc: '你发了一条消息——实际上系统上下文是同时组装的，这里分步展示方便理解',
+    phase: 'chat', phaseLabel: 'CHAT',
+    tokens: 120, pct: 0,
+    chat: { role: 'user', text: '帮我写一份乐高 EV3 课的课后反馈，给家长看的' },
+    ctx: { type: 'user', label: '用户消息: "帮我写一份乐高 EV3 课的课后反馈..."', size: '120', big: false },
+  },
+  // Step 2: System Prompt
+  {
+    desc: 'System Prompt 加载——Anthropic 写的"出厂指令"，对用户完全隐藏',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 4200, pct: 7,
+    source: 'system',
+    ctx: { type: 'system', label: 'System Prompt', preview: '(Anthropic 编写，对用户隐藏，不可修改)', size: '~4K', locked: true },
+  },
+  // Step 3: Global CLAUDE.md
+  {
+    desc: '全局 CLAUDE.md 加载——你写给所有项目的协作规范',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 8000, pct: 13,
+    source: 'global-md',
+    ctx: { type: 'global-md', label: '# claudeMd → 全局 CLAUDE.md', preview: '"永远用中文沟通，不客套不废话，简洁为主……"', size: '~3.5K', big: true, locked: true },
+  },
+  // Step 4: Project CLAUDE.md
+  {
+    desc: '项目 CLAUDE.md 加载——这个项目专属的指令',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 10000, pct: 16,
+    source: 'project-md',
+    ctx: { type: 'project-md', label: '# claudeMd → 项目 CLAUDE.md', preview: '"穹狼科创 STEM 教育，三校区，培训对象零基础……"', size: '~1.5K', locked: true },
+  },
+  // Step 5: Rules
+  {
+    desc: 'Rules 加载——按岗位分的规则文件',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 10500, pct: 17,
+    source: 'rules',
+    ctx: { type: 'rules', label: 'Rules (.claude/rules/*.md)', preview: '"课后反馈用温暖语气，不含负面评价……"', size: '~500', locked: true },
+  },
+  // Step 6: MCP (fully loaded at boot)
+  {
+    desc: 'MCP 全量加载——所有工具的完整定义、参数、说明，开机就全在上下文里',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 11500, pct: 19,
+    source: 'mcp',
+    ctx: { type: 'mcp-def', label: 'MCP 全量加载 (read, bash, edit, mcp-dianping...)', preview: '完整的工具定义+参数+说明，一次性全部装入', size: '~1K', locked: true },
+  },
+  // Step 7: Skills Descriptions (names + brief descriptions, always loaded)
+  {
+    desc: 'Skills 说明加载——AI 开机就知道有哪些 Skill 可用，但只有名字和简介',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 12000, pct: 20,
+    source: 'skills-def',
+    ctx: { type: 'skills', label: 'Skills 说明 (feedback, commit, review...)', preview: '只有名字+简介——完整指令要触发后才加载', size: '~500', locked: true },
+  },
+  // Step 8: Memory
+  {
+    desc: 'Memory 也在开机时加载——跨对话自动积累的记忆。开机完成！',
+    phase: 'boot', phaseLabel: 'BOOT',
+    tokens: 12800, pct: 21,
+    source: 'memory',
+    ctx: { type: 'memory', label: '# auto memory → MEMORY.md', preview: '"Rocky 是少儿编程机构创始人，偏好简洁汇报……"', size: '~800', locked: true },
+    bootComplete: true,
+  },
 
-    <!-- ===================================================
-         SLIDE 11: 窗口满了
-         =================================================== -->
-    <section class="slide" data-section="context">
-        <div class="paper" style="background:var(--text-primary);">
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-coral);">⚠️ Alert</p>
-                <h2 class="reveal" style="color:var(--bg-page);">窗口满了！</h2>
-                <div class="capacity-bar reveal" style="margin:var(--content-gap) 0;background:#333;">
-                    <div class="capacity-fill" style="width:100%;background:var(--tab-coral);">100% — 已满</div>
-                </div>
-                <div class="grid-2 reveal" style="margin-top:var(--content-gap);">
-                    <div style="background:#2a1515;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);">
-                        <p style="color:var(--tab-coral);font-weight:700;font-size:var(--small-size);margin-bottom:0.5em;">被清掉的 ❌</p>
-                        <ul style="list-style:none;padding:0;color:#ccc;font-size:var(--small-size);">
-                            <li>早期的对话记录</li>
-                            <li>之前读取的数据</li>
-                            <li>旧的工具调用结果</li>
-                            <li>口头说过的偏好</li>
-                        </ul>
-                    </div>
-                    <div style="background:#152a1a;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);">
-                        <p style="color:var(--tab-mint);font-weight:700;font-size:var(--small-size);margin-bottom:0.5em;">留下来的 🔒</p>
-                        <ul style="list-style:none;padding:0;color:#ccc;font-size:var(--small-size);">
-                            <li>CLAUDE.md（常驻）</li>
-                            <li>Rules 文件（常驻）</li>
-                            <li>Memory（常驻）</li>
-                            <li>System Prompt（常驻）</li>
-                        </ul>
-                    </div>
-                </div>
-                <p class="reveal" style="text-align:center;margin-top:var(--content-gap);color:var(--tab-cream);font-family:var(--font-display);font-style:italic;font-size:var(--body-size);">
-                    💡 口头说的会被清掉，写进手册的永远在
-                </p>
-            </div>
-        </div>
-    </section>
+  // === CHAT PHASE ===
+  // Step 8: AI reply 1
+  {
+    desc: 'AI 生成回复——对话和"隐藏内容"同时存在于上下文中',
+    phase: 'chat', phaseLabel: 'CHAT',
+    tokens: 14500, pct: 24,
+    chat: { role: 'ai', text: '好的，我来帮你写一份乐高 EV3 课后反馈。以下是针对今天课程的反馈模板...' },
+    ctx: { type: 'ai', label: 'AI 回复: 课后反馈模板', size: '~2K' },
+  },
 
-    <!-- ===================================================
-         SECTION: 陷阱问答
-         =================================================== -->
-    <section class="slide section-slide" style="--section-color:var(--tab-pink);">
-        <div class="paper">
-            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/12040985/pexels-photo-12040985.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
-            <span class="section-num">03</span>
-            <div class="paper-inner" style="justify-content:flex-end;">
-                <h2 class="reveal">陷阱问答</h2>
-                <p class="reveal" style="font-size:var(--h3-size);">检验你是否真正理解了</p>
-            </div>
-        </div>
-    </section>
+  // === SKILLS TRIGGER ===
+  // Step 10: User triggers skill
+  {
+    desc: '你输入了 /feedback 命令——开机时加载的只是"说明书"，现在要加载完整内容了',
+    phase: 'skill', phaseLabel: 'SKILL',
+    tokens: 15200, pct: 25,
+    chat: { role: 'user', text: '/feedback 小明今天乐高课齿轮传动做得不错，一次就啮合上了' },
+    ctx: { type: 'user', label: '用户消息: "/feedback 小明今天乐高课..."', size: '200' },
+  },
+  // Step 11: Skill full content loads into context
+  {
+    desc: '⚡ Skills 完整内容加载！开机时只有名字+简介（~500），触发后完整指令（~1.8K）注入',
+    phase: 'skill', phaseLabel: 'SKILL',
+    tokens: 17000, pct: 28,
+    source: 'skills-full',
+    skillTrigger: true,
+    ctx: { type: 'skills', label: '⚡ Skill 完整加载: 课后反馈生成器', preview: '"用温暖的语气，突出具体表现，给出个性化鼓励……"', size: '~1.8K', big: true },
+  },
+  // Step 12: AI reply using skill
+  {
+    desc: 'AI 结合 Skill 完整指令生成专业反馈——Skills 是唯一的"双阶段"：说明开机就在，内容触发才来',
+    phase: 'skill', phaseLabel: 'SKILL',
+    tokens: 19000, pct: 31,
+    chat: { role: 'ai', text: '亲爱的家长您好！小明今天在乐高 EV3 齿轮传动课上表现出色——齿轮啮合一次就成功了，比上次进步非常明显！...' },
+    ctx: { type: 'ai', label: 'AI 回复: 用 Skill 生成的课后反馈', size: '~2K' },
+  },
 
-    <!-- ===================================================
-         SLIDE 13: 陷阱1
-         =================================================== -->
-    <section class="slide" data-section="traps">
-        <div class="paper">
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
-                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sky);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-pink);">Trap #1</p>
-                <div class="question-card reveal">
-                    <h2 style="font-size:var(--h3-size);">🤔 你跟 Claude 聊了 2 小时，它是不是越来越懂你了？</h2>
-                </div>
-                <div class="grid-2 reveal" style="margin-top:var(--content-gap);">
-                    <div style="background:#fef8f0;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-cream);">
-                        <p style="color:#b08050;font-weight:700;font-size:var(--small-size);">⚡ 陷阱</p>
-                        <p style="font-size:var(--small-size);">大部分人会说"是"</p>
-                    </div>
-                    <div style="background:#f0faf4;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-mint);">
-                        <p style="color:var(--tab-sage);font-weight:700;font-size:var(--small-size);">✅ 答案</p>
-                        <p style="font-size:var(--small-size);"><strong>不是！</strong>早期对话已被卸载</p>
-                    </div>
-                </div>
-                <div class="reveal" style="margin-top:var(--element-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
-                    <p style="font-size:var(--body-size);">聊了 2 小时窗口快满了，早期的对话反而被卸载了——它不是越来越懂你，是越来越<strong>只记得最近说的话</strong>。想让它一直懂你，要写进 CLAUDE.md。</p>
-                </div>
-            </div>
-        </div>
-    </section>
+  // === TOOL CALL — MCP tool is already fully loaded, result is tool output ===
+  {
+    desc: '你让 AI 查数据——MCP 开机时已经全量加载了，AI 早就知道自己有 mcp-dianping 可以用',
+    phase: 'tool', phaseLabel: 'TOOL',
+    tokens: 19300, pct: 32,
+    chat: { role: 'user', text: '帮我看看大众点评上新翼校区最近的家长评价' },
+    ctx: { type: 'user', label: '用户消息: "帮我看大众点评评价..."', size: '200' },
+  },
+  {
+    desc: '📦 工具执行输出加载——AI 调用 mcp-dianping，返回的评价数据作为工具输出进入上下文',
+    phase: 'tool', phaseLabel: 'TOOL',
+    tokens: 24500, pct: 41,
+    source: 'tool',
+    ctx: { type: 'tool', label: '工具输出: mcp-dianping → 新翼校区评价', preview: '⭐⭐⭐⭐⭐ "老师很耐心，孩子每次都期待上课…"', size: '~5K', big: true },
+  },
+  {
+    desc: 'AI 分析评价数据——MCP 工具返回的数据和 Read、Bash 的输出一样，都是"调用时加载"',
+    phase: 'tool', phaseLabel: 'TOOL',
+    tokens: 27500, pct: 46,
+    chat: { role: 'ai', text: '新翼校区大众点评近 30 天共 12 条评价，平均 4.8 星。家长普遍好评教师耐心度...' },
+    ctx: { type: 'ai', label: 'AI 回复: 大众点评分析', size: '~3K' },
+  },
 
-    <!-- ===================================================
-         SLIDE 14: 陷阱2
-         =================================================== -->
-    <section class="slide" data-section="traps">
-        <div class="paper">
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
-                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-pink);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sky);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-pink);">Trap #2</p>
-                <div class="question-card reveal">
-                    <h2 style="font-size:var(--h3-size);">🤔 我在 CLAUDE.md 里写了"课后反馈要用温暖语气"，第二天开新对话，Claude 还记得吗？</h2>
-                </div>
-                <div class="grid-2 reveal" style="margin-top:var(--content-gap);">
-                    <div style="background:#fef8f0;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-cream);">
-                        <p style="color:#b08050;font-weight:700;font-size:var(--small-size);">⚡ 陷阱</p>
-                        <p style="font-size:var(--small-size);">有人会说"不记得"</p>
-                    </div>
-                    <div style="background:#f0faf4;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border-left:3px solid var(--tab-mint);">
-                        <p style="color:var(--tab-sage);font-weight:700;font-size:var(--small-size);">✅ 答案</p>
-                        <p style="font-size:var(--small-size);"><strong>记得！</strong>CLAUDE.md 是常驻层</p>
-                    </div>
-                </div>
-                <div class="reveal" style="margin-top:var(--element-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
-                    <p style="font-size:var(--body-size);">CLAUDE.md 是常驻层，每次新对话都会重新加载。这就是它和"聊天时口头说一句"的本质区别。</p>
-                </div>
-            </div>
-        </div>
-    </section>
+  // === API DEMONSTRATION — NEW! ===
+  // Step 15: User asks for weather (involves external API)
+  {
+    desc: '你让 AI 查天气——这次需要调用外部天气 API',
+    phase: 'api', phaseLabel: 'API',
+    tokens: 27300, pct: 45,
+    chat: { role: 'user', text: '查一下明天深圳的天气，我要决定户外课安排' },
+    ctx: { type: 'user', label: '用户消息: "查明天深圳天气..."', size: '180' },
+  },
+  // Step 16: AI writes code (IN context)
+  {
+    desc: '第 1 步：AI 写代码——写代码本身是 AI 的输出，在上下文窗口内',
+    phase: 'api', phaseLabel: 'API',
+    tokens: 30000, pct: 50,
+    source: 'tool',
+    ctx: { type: 'tool', label: 'AI 输出: 写入 weather.py (调用天气 API 的脚本)', preview: 'requests.get("api.weather.com/shenzhen")...', size: '~2.5K' },
+    showApiCallout: true,
+  },
+  // Step 17: Code executes OUTSIDE context (API callout shown)
+  {
+    desc: '第 2 步：代码执行 + API 调用——发生在上下文窗口外面！这一步你在上下文里看不到',
+    phase: 'api', phaseLabel: 'API',
+    tokens: 30000, pct: 50,
+    apiExecuting: true,
+  },
+  // Step 18: Result comes back IN context
+  {
+    desc: '第 3 步：执行结果返回上下文——只有最终输出进来，API 调用过程不在窗口里',
+    phase: 'api', phaseLabel: 'API',
+    tokens: 32000, pct: 53,
+    hideApiCallout: true,
+    ctx: { type: 'tool', label: 'Bash 输出: python weather.py → 天气数据', preview: '明天深圳：多云转晴，26°C，适合户外活动', size: '~1.5K' },
+  },
+  // Step 19: AI reply
+  {
+    desc: 'API 的三段式：写代码（窗口内）→ 执行+调用（窗口外）→ 结果回来（窗口内）',
+    phase: 'api', phaseLabel: 'API',
+    tokens: 34000, pct: 56,
+    chat: { role: 'ai', text: '明天深圳多云转晴，26°C，东南风 2 级。适合安排户外课。建议带防晒...' },
+    ctx: { type: 'ai', label: 'AI 回复: 天气分析 + 户外课建议', size: '~2K' },
+  },
 
-    <!-- ===================================================
-         SLIDE 15: 陷阱3
-         =================================================== -->
-    <section class="slide" data-section="traps">
-        <div class="paper">
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-lavender);"></div>
-                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-pink);">Trap #3</p>
-                <div class="question-card reveal">
-                    <h2 style="font-size:var(--h3-size);">🤔 口头说"表格都用蓝色标题"跟写进 CLAUDE.md，效果一样吗？</h2>
-                </div>
-                <div class="reveal" style="margin-top:var(--content-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
-                    <p><strong style="color:var(--accent);">这一轮一样，下一轮就不一样了！</strong></p>
-                    <p style="margin-top:0.5em;font-size:var(--small-size);">口头说的只在当前对话有效，窗口满了还可能被卸载。写进 CLAUDE.md 的每次对话都在——这就是"短期记忆"和"长期记忆"的区别。</p>
-                </div>
-                <div class="reveal" style="margin-top:var(--element-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;">
-                    <p class="section-label" style="color:var(--tab-lavender);">💎 加分题</p>
-                    <p style="font-size:var(--body-size);">让 Claude 查了大众点评的评价，又让它发到钉钉群。<strong>哪个更占窗口？</strong></p>
-                    <p style="margin-top:0.3em;font-size:var(--small-size);color:var(--text-muted);">答案：查大众点评远比发钉钉占空间。不是操作复杂就占空间——是<strong>返回的数据量大</strong>才占空间。</p>
-                </div>
-            </div>
-        </div>
-    </section>
+  // === FILL UP + OVERFLOW ===
+  // Step 20: More conversation
+  {
+    desc: '继续聊——暑假班方案、朋友圈文案、家长回复……窗口越来越满',
+    phase: 'chat', phaseLabel: 'CHAT',
+    tokens: 54000, pct: 90,
+    chat: { role: 'user', text: '再帮我写一份暑假班推广方案，要发朋友圈的' },
+    ctx: { type: 'user', label: '用户消息 + AI 回复: 暑假班方案 + 朋友圈文案...', size: '~20K', huge: true },
+  },
+  // Step 21: Warning
+  {
+    desc: '⚠️ 窗口快满了！容量条变红——接下来会发生什么？',
+    phase: 'overflow', phaseLabel: 'OVERFLOW',
+    tokens: 58000, pct: 95,
+    warning: true,
+  },
+  // Step 22: Unload — everything gets cleared
+  {
+    desc: '压缩！整个上下文被清空——所有内容都会被清理掉',
+    phase: 'overflow', phaseLabel: 'OVERFLOW',
+    tokens: 0, pct: 0,
+    unload: true,
+  },
+  // Step 23: Permanent layer re-injected
+  {
+    desc: '常驻层重新注入！System Prompt、CLAUDE.md、Rules、MCP、Skills 说明、Memory 重新加载回来',
+    phase: 'overflow', phaseLabel: 'REINJECT',
+    tokens: 13000, pct: 21,
+    reinject: true,
+  },
+  // Step 24: /compact summary added
+  {
+    desc: '之前的对话被压缩成摘要，和重新注入的常驻层一起组成新的上下文',
+    phase: 'manage', phaseLabel: 'COMPACT',
+    tokens: 15000, pct: 25,
+    compact: true,
+    chat: { role: 'user', text: '/compact' },
+  },
+  // Step 24: Summary
+  {
+    desc: '',
+    phase: 'manage', phaseLabel: 'DONE',
+    summary: true,
+  },
+];
 
-    <!-- ===================================================
-         SECTION: 四层记忆体系
-         =================================================== -->
-    <section class="slide section-slide" style="--section-color:var(--tab-sky);">
-        <div class="paper">
-            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/2693208/pexels-photo-2693208.png?auto=compress&cs=tinysrgb&w=1200');"></div>
-            <span class="section-num">04</span>
-            <div class="paper-inner" style="justify-content:flex-end;">
-                <h2 class="reveal">四层记忆体系</h2>
-                <p class="reveal" style="font-size:var(--h3-size);">从个人到团队，记忆分层管理</p>
-            </div>
-        </div>
-    </section>
+// ===== State =====
+let currentStep = -1;
+const ctxBlocks = [];
+const loadedSources = new Set();
+let apiCalloutVisible = false;
 
-    <!-- ===================================================
-         SLIDE 17: 四层总览
-         =================================================== -->
-    <section class="slide" data-section="layers">
-        <div class="paper">
-            <div class="float-img"><img src="https://images.pexels.com/photos/357514/pexels-photo-357514.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Folders"></div>
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
-                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-sky);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-cream);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-sky);">Memory Architecture</p>
-                <h2 class="reveal">四层记忆体系</h2>
-                <div class="divider reveal"></div>
-                <div style="margin-top:var(--content-gap);">
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">🧠</span>
-                        <div style="flex:1;">
-                            <strong>Auto-memory</strong>
-                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">MEMORY.md</span>
-                            <p style="font-size:var(--small-size);">Claude 自动积累 · ≈ 同事久了知道你的习惯</p>
-                        </div>
-                        <span class="layer-badge" style="background:var(--tab-lavender);color:#4a3a7a;">跟着个人走</span>
-                    </div>
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">🪪</span>
-                        <div style="flex:1;">
-                            <strong>全局 CLAUDE.md</strong>
-                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">~/.claude/CLAUDE.md</span>
-                            <p style="font-size:var(--small-size);">你自己写 · ≈ 你的工牌</p>
-                        </div>
-                        <span class="layer-badge" style="background:var(--tab-lavender);color:#4a3a7a;">跟着个人走</span>
-                    </div>
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">📖</span>
-                        <div style="flex:1;">
-                            <strong>项目 CLAUDE.md</strong>
-                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">项目根目录</span>
-                            <p style="font-size:var(--small-size);">团队一起写 · ≈ 穹狼员工手册</p>
-                        </div>
-                        <span class="layer-badge" style="background:var(--tab-coral);color:#7a3a3a;">跟着项目走</span>
-                    </div>
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">📋</span>
-                        <div style="flex:1;">
-                            <strong>.claude/rules/</strong>
-                            <span class="mono" style="color:var(--text-muted);margin-left:0.5em;">.claude/rules/*.md</span>
-                            <p style="font-size:var(--small-size);">各岗位写各自的 · ≈ 岗位操作手册</p>
-                        </div>
-                        <span class="layer-badge" style="background:var(--tab-coral);color:#7a3a3a;">跟着项目走</span>
-                    </div>
-                </div>
-                <p class="reveal" style="margin-top:var(--content-gap);text-align:center;font-size:var(--small-size);color:var(--text-muted);font-style:italic;">
-                    前两层跟着你个人走（换项目还在），后两层跟着项目走（换人也在）
-                </p>
-            </div>
-        </div>
-    </section>
+// ===== DOM refs =====
+const panelSources = document.getElementById('panelSources');
+const contextContainer = document.getElementById('contextContainer');
+const chatMessages = document.getElementById('chatMessages');
+const queueBar = document.getElementById('queueBar');
+const stepDesc = document.getElementById('stepDesc');
+const stepCounter = document.getElementById('stepCounter');
+const phaseTag = document.getElementById('phaseTag');
+const tokenCount = document.getElementById('tokenCount');
+const capacityPct = document.getElementById('capacityPct');
+const capacityFill = document.getElementById('capacityFill');
+const summaryOverlay = document.getElementById('summaryOverlay');
+const bootOverlay = document.getElementById('bootOverlay');
+const apiCallout = document.getElementById('apiCallout');
 
-    <!-- ===================================================
-         SLIDE 18: CLAUDE.md vs Rules
-         =================================================== -->
-    <section class="slide" data-section="layers">
-        <div class="paper">
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-pink);"></div>
-                <div class="tab active" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-sky);">Difference</p>
-                <h2 class="reveal">CLAUDE.md 是"我是谁"<br>Rules 是"做这件事时怎么做"</h2>
-                <div class="divider reveal"></div>
-                <div class="grid-3 reveal-scale" style="margin-top:var(--content-gap);">
-                    <div class="card card-accent" style="--card-color:var(--tab-mint);">
-                        <p class="section-label" style="color:var(--tab-mint);">管理层 Rules</p>
-                        <p style="font-size:var(--small-size);">写周报时的格式规范<br>数据对比要带同比</p>
-                    </div>
-                    <div class="card card-accent" style="--card-color:var(--tab-coral);">
-                        <p class="section-label" style="color:var(--tab-coral);">销售 Rules</p>
-                        <p style="font-size:var(--small-size);">回复家长咨询的话术<br>不承诺确定性结果</p>
-                    </div>
-                    <div class="card card-accent" style="--card-color:var(--tab-lavender);">
-                        <p class="section-label" style="color:var(--tab-lavender);">老师 Rules</p>
-                        <p style="font-size:var(--small-size);">课后反馈的模板格式<br>评估维度和用语规范</p>
-                    </div>
-                </div>
-                <p class="reveal" style="margin-top:var(--content-gap);text-align:center;font-family:var(--font-display);font-style:italic;font-size:var(--body-size);color:var(--accent);">
-                    CLAUDE.md 一份，rules 可以有很多份
-                </p>
-            </div>
-        </div>
-    </section>
+// ===== Init =====
+function init() {
+  SOURCE_GROUPS.forEach(group => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'source-group';
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'source-group-label';
+    labelDiv.innerHTML = `<span class="group-icon">${group.icon}</span>${group.label}<span class="timing-badge ${group.timingClass}">${
+      group.timingClass === 'always' ? '永远在' :
+      group.timingClass === 'trigger' ? '按需' :
+      group.timingClass === 'demand' ? '按需' : '不进入'
+    }</span>`;
+    groupDiv.appendChild(labelDiv);
+    group.items.forEach(s => {
+      const el = document.createElement('div');
+      el.className = `source-item${group.timingClass === 'never' ? ' never-enters' : ''}`;
+      el.id = `source-${s.id}`;
+      el.innerHTML = `<span class="dot" style="background:${s.color};color:${s.color}"></span>
+        <span class="icon-svg" style="color:${s.color}">${s.icon}</span>
+        <span>${s.label}</span>`;
+      groupDiv.appendChild(el);
+    });
+    panelSources.appendChild(groupDiv);
+  });
 
-    <!-- ===================================================
-         SECTION: 五个管理命令
-         =================================================== -->
-    <section class="slide section-slide" style="--section-color:var(--tab-cream);">
-        <div class="paper">
-            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/1933900/pexels-photo-1933900.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
-            <span class="section-num">05</span>
-            <div class="paper-inner" style="justify-content:flex-end;">
-                <h2 class="reveal">五个管理命令</h2>
-                <p class="reveal" style="font-size:var(--h3-size);">管理 AI 记忆的核心工具</p>
-            </div>
-        </div>
-    </section>
+  for (let i = 0; i < STEPS.length; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'queue-cell';
+    cell.id = `queue-${i}`;
+    queueBar.appendChild(cell);
+  }
 
-    <!-- ===================================================
-         SLIDE 20: 命令概览
-         =================================================== -->
-    <section class="slide" data-section="commands">
-        <div class="paper">
-            <div class="float-img"><img src="https://images.pexels.com/photos/16129724/pexels-photo-16129724.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Coding"></div>
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sky);"></div>
-                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-cream);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-sage);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-cream);filter:brightness(0.7);">Commands</p>
-                <h2 class="reveal">五个核心命令</h2>
-                <div class="divider reveal"></div>
-                <div style="margin-top:var(--content-gap);">
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">🔍</span>
-                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/memory</span><p style="font-size:var(--small-size);">查看 Claude 记住了什么 · <em>检查手册加载了没</em></p></div>
-                    </div>
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">📦</span>
-                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/compact</span><p style="font-size:var(--small-size);">对话太长，整理只留重点 · <em>手册不会丢</em></p></div>
-                    </div>
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">🆕</span>
-                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/new</span><p style="font-size:var(--small-size);">开全新对话（重新开机） · <em>手册重新加载，聊天清空</em></p></div>
-                    </div>
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">⏩</span>
-                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/resume</span><p style="font-size:var(--small-size);">恢复之前的对话 · <em>翻出来接着聊</em></p></div>
-                    </div>
-                    <div class="layer-row reveal">
-                        <span class="layer-icon">🔄</span>
-                        <div style="flex:1;"><span class="cmd-box" style="font-size:var(--body-size);">/model</span><p style="font-size:var(--small-size);">切换 AI 模型级别 · <em>换个不同水平的人来干活</em></p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  goToStep(0);
+}
 
-    <!-- ===================================================
-         SECTION: 记忆积累
-         =================================================== -->
-    <section class="slide section-slide" style="--section-color:var(--tab-sage);">
-        <div class="paper">
-            <div class="section-bg" style="background-image:url('https://images.pexels.com/photos/2128249/pexels-photo-2128249.jpeg?auto=compress&cs=tinysrgb&w=1200');"></div>
-            <span class="section-num">06</span>
-            <div class="paper-inner" style="justify-content:flex-end;">
-                <h2 class="reveal">记忆积累三种方式</h2>
-                <p class="reveal" style="font-size:var(--h3-size);">发现新规则，怎么加进去？</p>
-            </div>
-        </div>
-    </section>
+function activateSource(id) {
+  document.querySelectorAll('.source-item.active').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(`source-${id}`);
+  if (el) {
+    el.classList.add('active', 'loaded');
+    loadedSources.add(id);
+  }
+}
 
-    <!-- ===================================================
-         SLIDE 22: 三种方式
-         =================================================== -->
-    <section class="slide" data-section="memory">
-        <div class="paper">
-            <div class="float-img"><img src="https://images.pexels.com/photos/17483869/pexels-photo-17483869.jpeg?auto=compress&cs=tinysrgb&w=600" alt="AI Brain"></div>
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
-                <div class="tab active" style="height:clamp(40px,6vh,60px);background:var(--tab-sage);"></div>
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--tab-sage);">Methods</p>
-                <h2 class="reveal">三种方式积累记忆</h2>
-                <div class="divider reveal"></div>
-                <div class="grid-3 reveal-scale" style="margin-top:var(--content-gap);">
-                    <div class="card card-accent" style="--card-color:var(--tab-mint);">
-                        <p class="section-label" style="color:var(--tab-mint);">方式一</p>
-                        <h3 style="font-size:var(--body-size);"># 手动追加</h3>
-                        <p style="font-size:var(--small-size);margin-top:0.5em;">输入 # 把规则追加到 CLAUDE.md</p>
-                        <p style="font-size:var(--caption-size);color:var(--text-muted);margin-top:0.3em;font-style:italic;">≈ 你自己拿笔补一条</p>
-                    </div>
-                    <div class="card card-accent" style="--card-color:var(--tab-coral);">
-                        <p class="section-label" style="color:var(--tab-coral);">方式二</p>
-                        <h3 style="font-size:var(--body-size);">口头指令更新</h3>
-                        <p style="font-size:var(--small-size);margin-top:0.5em;">直接说"帮我加一条规则"</p>
-                        <p style="font-size:var(--caption-size);color:var(--text-muted);margin-top:0.3em;font-style:italic;">≈ 口头跟助理说</p>
-                    </div>
-                    <div class="card card-accent" style="--card-color:var(--tab-lavender);">
-                        <p class="section-label" style="color:var(--tab-lavender);">方式三</p>
-                        <h3 style="font-size:var(--body-size);">Auto-memory</h3>
-                        <p style="font-size:var(--small-size);margin-top:0.5em;">Claude 观察你的习惯，主动提议记住</p>
-                        <p style="font-size:var(--caption-size);color:var(--text-muted);margin-top:0.3em;font-style:italic;">≈ Claude 自己学</p>
-                    </div>
-                </div>
-                <div class="reveal" style="margin-top:var(--content-gap);background:white;border-radius:8px;padding:clamp(0.6rem,1.5vw,1rem);border:1px solid #e8e4dc;text-align:center;">
-                    <p style="font-size:var(--small-size);">
-                        <strong>关键区分：</strong>"你喜欢表格汇报" → 个人习惯 → <span class="tag" style="background:var(--tab-lavender);color:#4a3a7a;">Auto-memory</span>
-                        &nbsp;≠&nbsp;
-                        "不提学费" → 公司制度 → <span class="tag" style="background:var(--tab-coral);color:#7a3a3a;">CLAUDE.md</span>
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
+function addCtxBlock(cfg) {
+  const el = document.createElement('div');
+  let classes = `ctx-block type-${cfg.type} fly-in`;
+  if (cfg.huge) classes += ' huge';
+  else if (cfg.big) classes += ' big';
+  el.className = classes;
 
-    <!-- ===================================================
-         SLIDE 23: 要点回顾
-         =================================================== -->
-    <section class="slide title-slide">
-        <div class="title-bg-img" style="background-image:url('https://images.pexels.com/photos/17484975/pexels-photo-17484975/free-photo-of-an-artist-s-illustration-of-artificial-intelligence-ai-this-image-depicts-how-ai-can-help-humans-to-understand-the-complexity-of-biology-it-was-created-by-artist-khyati-trehan-as-part.png?auto=compress&cs=tinysrgb&w=1600');opacity:0.1;"></div>
-        <div class="title-deco" style="width:clamp(250px,35vw,600px);height:clamp(250px,35vw,600px);bottom:-10%;left:-10%;background:var(--tab-mint);"></div>
-        <div class="title-deco" style="width:clamp(180px,25vw,400px);height:clamp(180px,25vw,400px);top:10%;right:5%;background:var(--tab-cream);"></div>
-        <div class="paper">
-            <div class="paper-inner" style="justify-content:center;align-items:center;text-align:center;">
-                <p class="reveal" style="font-size:clamp(2rem,5vw,3.5rem);">🦞</p>
-                <h1 class="reveal" style="font-size:clamp(1.8rem,5vw,3rem);">养龙虾</h1>
-                <p class="reveal italic-accent" style="font-size:var(--body-size);color:#aaa;max-width:500px;margin-top:0.5em;">
-                    你喂它什么规则，它就按什么规则来
-                </p>
-                <div style="margin-top:var(--content-gap);text-align:left;display:inline-block;">
-                    <p class="reveal mono" style="color:var(--tab-mint);padding:0.2em 0;">全局 CLAUDE.md → 你是谁（个人工牌）</p>
-                    <p class="reveal mono" style="color:var(--tab-coral);padding:0.2em 0;">项目 CLAUDE.md → 穹狼怎么干（员工手册）</p>
-                    <p class="reveal mono" style="color:var(--tab-cream);padding:0.2em 0;">.claude/rules/ → 你的岗位怎么干（岗位手册）</p>
-                    <p class="reveal mono" style="color:var(--tab-lavender);padding:0.2em 0;">Auto-memory → Claude 自己记住的习惯</p>
-                </div>
-                <p class="reveal" style="margin-top:var(--content-gap);font-size:var(--small-size);color:#666;">
-                    <span class="cmd-box">/memory</span>&nbsp;
-                    <span class="cmd-box">/compact</span>&nbsp;
-                    <span class="cmd-box">/new</span>&nbsp;
-                    <span class="cmd-box">/resume</span>&nbsp;
-                    <span class="cmd-box">/model</span>
-                </p>
-            </div>
-        </div>
-    </section>
+  let lockHtml = '';
+  if (cfg.locked) {
+    lockHtml = `<span class="lock-icon" style="color:currentColor">${ICONS.lock}</span>`;
+  }
 
-    <!-- ===================================================
-         SLIDE 24: 课后作业
-         =================================================== -->
-    <section class="slide" data-section="outro">
-        <div class="paper">
-            <div class="float-img"><img src="https://images.pexels.com/photos/3782235/pexels-photo-3782235.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Sticky Notes"></div>
-            <div class="tab-strip">
-                <div class="tab" style="height:clamp(20px,4vh,40px);background:var(--tab-mint);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-lavender);"></div>
-                <div class="tab" style="height:clamp(40px,6vh,60px);background:var(--tab-pink);"></div>
-                <div class="tab" style="height:clamp(30px,5vh,50px);background:var(--tab-sky);"></div>
-                <div class="tab active" style="height:clamp(20px,4vh,40px);background:var(--tab-cream);"></div>
-            </div>
-            <div class="paper-inner">
-                <p class="section-label reveal" style="color:var(--accent);">Homework</p>
-                <h2 class="reveal">课后作业</h2>
-                <div class="divider reveal"></div>
-                <p class="reveal" style="margin-top:var(--element-gap);font-family:var(--font-display);font-style:italic;color:var(--accent);">制作上下文窗口交互演示页面</p>
-                <div style="margin-top:var(--content-gap);">
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">1</div><p>参考课堂演示页面，加入 Skills、MCP、API 的演示</p></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">2</div><p>页面里用你自己真实的 CLAUDE.md、rules、MEMORY.md</p></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">3</div><p>标注你用的模型和窗口大小（如 Sonnet 4 · 200K tokens）</p></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">4</div><p>发布到 pages.edgeone.ai（拖拽 HTML 文件即可）</p></div>
-                    <div class="step reveal"><div class="step-num" style="background:var(--tab-coral);">5</div><p>用钉钉 Webhook 把链接发到培训练习群</p></div>
-                </div>
-                <div class="reveal" style="margin-top:var(--content-gap);background:#fef8f0;border-radius:8px;padding:clamp(0.5rem,1vw,0.8rem);border-left:3px solid var(--tab-cream);">
-                    <p style="font-size:var(--small-size);">⚡ 提示：先自己搞懂 Skills、MCP、API 的区别，再让 Claude 帮你做</p>
-                </div>
-            </div>
-        </div>
-    </section>
+  const previewHtml = cfg.preview ? `<span class="block-preview">${cfg.preview}</span>` : '';
+  el.innerHTML = `${lockHtml}<span class="block-label"><span class="label-title">${cfg.label}</span>${previewHtml}</span><span class="block-size">${cfg.size}</span><div class="shield-overlay"></div>`;
+  el.dataset.locked = cfg.locked ? '1' : '0';
+  el.dataset.type = cfg.type;
+  el.dataset.step = currentStep;
 
-    <!-- ===================================================
-         SLIDE 25: THANK YOU
-         =================================================== -->
-    <section class="slide title-slide">
-        <div class="title-bg-img" style="background-image:url('https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1600');opacity:0.08;"></div>
-        <div class="title-deco" style="width:clamp(300px,40vw,700px);height:clamp(300px,40vw,700px);top:-15%;right:-10%;background:var(--tab-lavender);"></div>
-        <div class="title-deco" style="width:clamp(200px,25vw,450px);height:clamp(200px,25vw,450px);bottom:-5%;left:5%;background:var(--tab-mint);"></div>
-        <div class="paper">
-            <div class="paper-inner" style="justify-content:center;align-items:center;text-align:center;">
-                <h1 class="reveal" style="letter-spacing:0.1em;font-size:clamp(2.5rem,8vw,5rem);">THANK YOU</h1>
-                <p class="reveal" style="font-family:var(--font-display);font-style:italic;font-size:var(--h3-size);color:#999;">Day 02 · AI 的记忆机制</p>
-                <div class="title-accent-line reveal" style="margin-left:auto;margin-right:auto;"></div>
-                <p class="reveal" style="font-size:var(--body-size);color:#888;">下节预告：Claude Code 基本功——对话与文件</p>
-                <p class="reveal" style="margin-top:auto;padding-top:clamp(1rem,3vh,2rem);font-size:var(--caption-size);color:#666;">穹狼科创 · Claude Code 内训课程</p>
-            </div>
-        </div>
-    </section>
+  contextContainer.appendChild(el);
+  ctxBlocks.push(el);
 
-    <!-- ===========================================
-         JAVASCRIPT: Presentation Controller
-         =========================================== -->
-    <script>
-        /* === SLIDE PRESENTATION CONTROLLER === */
-        class SlidePresentation {
-            constructor() {
-                this.slides = document.querySelectorAll('.slide');
-                this.currentSlide = 0;
-                this.isScrolling = false;
+  setTimeout(() => {
+    contextContainer.scrollTop = contextContainer.scrollHeight;
+  }, 100);
 
-                this.setupIntersectionObserver();
-                this.setupKeyboardNav();
-                this.setupTouchNav();
-                this.setupProgressBar();
-                this.setupNavDots();
-                this.setupWheelNav();
+  return el;
+}
 
-                // Initial state: make first slide visible
-                this.slides[0].classList.add('visible');
-            }
+function addChatBubble(cfg) {
+  const el = document.createElement('div');
+  el.className = `chat-bubble ${cfg.role}`;
+  el.dataset.step = currentStep;
+  const tag = cfg.role === 'user' ? 'You' : 'Claude';
+  el.innerHTML = `<div class="bubble-tag">${tag}</div><div>${cfg.text}</div>`;
+  chatMessages.appendChild(el);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
 
-            /* --- Intersection Observer for animations --- */
-            setupIntersectionObserver() {
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
-                            // Update current slide index
-                            const idx = Array.from(this.slides).indexOf(entry.target);
-                            if (idx !== -1) {
-                                this.currentSlide = idx;
-                                this.updateProgressBar();
-                                this.updateNavDots();
-                            }
-                        }
-                    });
-                }, {
-                    threshold: 0.5
-                });
+function updateCapacity(tokens, pct, danger) {
+  tokenCount.textContent = tokens.toLocaleString() + ' tokens';
+  capacityPct.textContent = pct + '%';
+  capacityFill.style.width = pct + '%';
+  if (danger || pct >= 90) {
+    capacityFill.classList.add('danger');
+  } else {
+    capacityFill.classList.remove('danger');
+  }
+}
 
-                this.slides.forEach(slide => observer.observe(slide));
-            }
+function updateQueueBar(step) {
+  for (let i = 0; i < STEPS.length; i++) {
+    const cell = document.getElementById(`queue-${i}`);
+    if (i <= step) {
+      const s = STEPS[i];
+      let color = 'rgba(99,102,241,0.5)';
+      if (s.source) {
+        const src = SOURCES.find(x => x.id === s.source);
+        if (src) color = src.color;
+      } else if (s.phase === 'chat') color = 'var(--c-user)';
+      else if (s.phase === 'skill') color = 'var(--c-skills)';
+      else if (s.phase === 'api') color = 'var(--c-api)';
+      else if (s.phase === 'overflow') color = 'var(--c-skills)';
+      else if (s.phase === 'manage') color = 'var(--c-global-md)';
+      cell.classList.add('filled');
+      cell.style.background = color;
+    } else {
+      cell.classList.remove('filled');
+      cell.style.background = '';
+    }
+  }
+}
 
-            /* --- Keyboard Navigation --- */
-            setupKeyboardNav() {
-                document.addEventListener('keydown', (e) => {
-                    switch(e.key) {
-                        case 'ArrowDown':
-                        case 'ArrowRight':
-                        case ' ':
-                        case 'PageDown':
-                            e.preventDefault();
-                            this.goToSlide(this.currentSlide + 1);
-                            break;
-                        case 'ArrowUp':
-                        case 'ArrowLeft':
-                        case 'PageUp':
-                            e.preventDefault();
-                            this.goToSlide(this.currentSlide - 1);
-                            break;
-                        case 'Home':
-                            e.preventDefault();
-                            this.goToSlide(0);
-                            break;
-                        case 'End':
-                            e.preventDefault();
-                            this.goToSlide(this.slides.length - 1);
-                            break;
-                    }
-                });
-            }
+function showApiCallout() {
+  // Position near the right side of the context panel
+  const ctxRect = contextContainer.getBoundingClientRect();
+  apiCallout.style.right = '260px';
+  apiCallout.style.top = (ctxRect.top + ctxRect.height / 2 - 100) + 'px';
+  apiCallout.classList.add('visible');
+  apiCalloutVisible = true;
+}
 
-            /* --- Touch/Swipe Navigation --- */
-            setupTouchNav() {
-                let startY = 0;
-                let startX = 0;
+function hideApiCallout() {
+  apiCallout.classList.remove('visible');
+  apiCalloutVisible = false;
+}
 
-                document.addEventListener('touchstart', (e) => {
-                    startY = e.touches[0].clientY;
-                    startX = e.touches[0].clientX;
-                }, { passive: true });
+function doUnload() {
+  contextContainer.classList.add('overflow-active');
+  const allBlocks = [...ctxBlocks];
+  spawnParticles();
+  // Shred ALL blocks — including locked ones
+  allBlocks.forEach((el, i) => {
+    setTimeout(() => {
+      el.classList.add('shredding');
+      setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        const idx = ctxBlocks.indexOf(el);
+        if (idx > -1) ctxBlocks.splice(idx, 1);
+      }, 800);
+    }, i * 80);
+  });
+  setTimeout(() => {
+    contextContainer.classList.remove('overflow-active');
+  }, allBlocks.length * 80 + 1200);
+}
 
-                document.addEventListener('touchend', (e) => {
-                    const deltaY = startY - e.changedTouches[0].clientY;
-                    const deltaX = startX - e.changedTouches[0].clientX;
+// Re-inject permanent layer after unload
+function doReinject() {
+  const permanentBlocks = [
+    { type: 'system', label: 'System Prompt', preview: '(重新注入)', size: '~4K', locked: true },
+    { type: 'global-md', label: '# claudeMd → 全局 CLAUDE.md', preview: '(重新注入)', size: '~3.5K', locked: true },
+    { type: 'project-md', label: '# claudeMd → 项目 CLAUDE.md', preview: '(重新注入)', size: '~1.5K', locked: true },
+    { type: 'rules', label: 'Rules (.claude/rules/*.md)', preview: '(重新注入)', size: '~500', locked: true },
+    { type: 'mcp-def', label: 'MCP 全量加载', preview: '(重新注入)', size: '~1K', locked: true },
+    { type: 'skills', label: 'Skills 说明', preview: '(重新注入)', size: '~500', locked: true },
+    { type: 'memory', label: '# auto memory → MEMORY.md', preview: '(重新注入)', size: '~800', locked: true },
+  ];
+  permanentBlocks.forEach((cfg, i) => {
+    setTimeout(() => {
+      addCtxBlock(cfg);
+    }, i * 150);
+  });
+}
 
-                    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 50) {
-                        if (deltaY > 0) this.goToSlide(this.currentSlide + 1);
-                        else this.goToSlide(this.currentSlide - 1);
-                    }
-                }, { passive: true });
-            }
+function spawnParticles() {
+  const rect = contextContainer.getBoundingClientRect();
+  const colors = ['#ef4444', '#f97316', '#f59e0b', '#ec4899', '#8b5cf6'];
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.left = (rect.left + Math.random() * rect.width) + 'px';
+    p.style.top = (rect.top + Math.random() * rect.height * 0.6) + 'px';
+    p.style.opacity = '1';
+    document.body.appendChild(p);
+    const dx = (Math.random() - 0.5) * 200;
+    const dy = -(Math.random() * 150 + 50);
+    p.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+    ], { duration: 1000 + Math.random() * 500, easing: 'ease-out' });
+    setTimeout(() => p.remove(), 1500);
+  }
+}
 
-            /* --- Mouse Wheel Navigation --- */
-            setupWheelNav() {
-                let lastWheel = 0;
-                document.addEventListener('wheel', (e) => {
-                    const now = Date.now();
-                    if (now - lastWheel < 800) return;
-                    lastWheel = now;
+function doCompact() {
+  const toRemove = ctxBlocks.filter(el => el.dataset.locked !== '1');
+  toRemove.forEach((el, i) => {
+    setTimeout(() => {
+      el.classList.add('compacting');
+      setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        const idx = ctxBlocks.indexOf(el);
+        if (idx > -1) ctxBlocks.splice(idx, 1);
+      }, 600);
+    }, i * 50);
+  });
+  setTimeout(() => {
+    addCtxBlock({ type: 'compact', label: '/compact 摘要: 课后反馈 + 点评分析 + 天气查询', size: '~2K', locked: false });
+  }, toRemove.length * 50 + 700);
+}
 
-                    if (e.deltaY > 0) this.goToSlide(this.currentSlide + 1);
-                    else if (e.deltaY < 0) this.goToSlide(this.currentSlide - 1);
-                }, { passive: true });
-            }
+function goToStep(step) {
+  if (step < 0 || step >= STEPS.length) return;
+  currentStep = step;
+  const s = STEPS[step];
 
-            /* --- Progress Bar --- */
-            setupProgressBar() {
-                this.progressBar = document.getElementById('progressBar');
-                this.updateProgressBar();
-            }
+  stepCounter.textContent = `${step} / ${STEPS.length - 1}`;
+  stepDesc.textContent = s.desc;
+  stepDesc.style.opacity = s.desc ? '1' : '0';
 
-            updateProgressBar() {
-                if (!this.progressBar) return;
-                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
-                this.progressBar.style.width = progress + '%';
-            }
+  phaseTag.textContent = s.phaseLabel;
+  phaseTag.className = `phase-tag ${s.phase}`;
+  updateQueueBar(step);
 
-            /* --- Navigation Dots --- */
-            setupNavDots() {
-                const container = document.getElementById('navDots');
-                if (!container) return;
+  if (s.tokens !== undefined) updateCapacity(s.tokens, s.pct, s.warning);
+  if (s.warning) contextContainer.classList.add('warning');
+  if (s.source) activateSource(s.source);
+  if (s.ctx) addCtxBlock(s.ctx);
+  if (s.chat) addChatBubble(s.chat);
 
-                this.slides.forEach((_, i) => {
-                    const dot = document.createElement('button');
-                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
-                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
-                    dot.addEventListener('click', () => this.goToSlide(i));
-                    container.appendChild(dot);
-                });
+  // Skill trigger flash
+  if (s.skillTrigger) {
+    const el = document.getElementById('source-skills-full');
+    if (el) {
+      el.classList.add('skill-triggered');
+      setTimeout(() => el.classList.remove('skill-triggered'), 800);
+    }
+  }
 
-                this.navDotElements = container.querySelectorAll('.nav-dot');
-            }
+  // API callout
+  if (s.showApiCallout) showApiCallout();
+  if (s.hideApiCallout) hideApiCallout();
+  if (s.apiExecuting) {
+    // Pulse the API callout — highlight step 2
+    if (!apiCalloutVisible) showApiCallout();
+    const steps = apiCallout.querySelectorAll('.api-flow-step');
+    steps.forEach(s => s.style.opacity = '0.4');
+    if (steps[1]) {
+      steps[1].style.opacity = '1';
+      steps[1].style.boxShadow = '0 0 15px rgba(239,68,68,0.3)';
+    }
+  } else if (apiCalloutVisible && !s.showApiCallout && !s.apiExecuting) {
+    // Reset API step highlights
+    const steps = apiCallout.querySelectorAll('.api-flow-step');
+    steps.forEach(s => { s.style.opacity = '1'; s.style.boxShadow = 'none'; });
+  }
 
-            updateNavDots() {
-                if (!this.navDotElements) return;
-                this.navDotElements.forEach((dot, i) => {
-                    dot.classList.toggle('active', i === this.currentSlide);
-                });
-            }
+  if (s.unload) { contextContainer.classList.remove('warning'); doUnload(); }
+  if (s.reinject) doReinject();
+  if (s.compact) doCompact();
+  if (s.bootComplete) bootOverlay.classList.add('visible');
+  if (s.summary) summaryOverlay.classList.add('visible');
+  else summaryOverlay.classList.remove('visible');
+}
 
-            /* --- Navigate to slide --- */
-            goToSlide(index) {
-                if (index < 0 || index >= this.slides.length) return;
-                this.currentSlide = index;
-                this.slides[index].scrollIntoView({ behavior: 'smooth' });
-                this.updateProgressBar();
-                this.updateNavDots();
-            }
-        }
+function reset() {
+  currentStep = -1;
+  contextContainer.innerHTML = '';
+  chatMessages.innerHTML = '';
+  ctxBlocks.length = 0;
+  loadedSources.clear();
+  contextContainer.classList.remove('warning', 'overflow-active');
+  summaryOverlay.classList.remove('visible');
+  bootOverlay.classList.remove('visible');
+  hideApiCallout();
+  document.querySelectorAll('.source-item').forEach(el => {
+    el.classList.remove('active', 'loaded', 'skill-triggered');
+  });
+  for (let i = 0; i < STEPS.length; i++) {
+    const cell = document.getElementById(`queue-${i}`);
+    cell.classList.remove('filled');
+    cell.style.background = '';
+  }
+  updateCapacity(0, 0, false);
+  goToStep(0);
+}
 
-        /* === INITIALIZE === */
-        document.addEventListener('DOMContentLoaded', () => {
-            new SlidePresentation();
-        });
-    </script>
+function rebuildToStep(targetStep) {
+  currentStep = -1;
+  contextContainer.innerHTML = '';
+  chatMessages.innerHTML = '';
+  ctxBlocks.length = 0;
+  loadedSources.clear();
+  contextContainer.classList.remove('warning', 'overflow-active');
+  summaryOverlay.classList.remove('visible');
+  bootOverlay.classList.remove('visible');
+  hideApiCallout();
+  document.querySelectorAll('.source-item').forEach(el => {
+    el.classList.remove('active', 'loaded', 'skill-triggered');
+  });
+
+  for (let i = 0; i <= targetStep; i++) {
+    currentStep = i;
+    const s = STEPS[i];
+
+    if (s.source) {
+      const el = document.getElementById(`source-${s.source}`);
+      if (el) el.classList.add('loaded');
+      loadedSources.add(s.source);
+    }
+
+    if (s.unload) {
+      // Clear ALL blocks (including locked)
+      ctxBlocks.forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
+      ctxBlocks.length = 0;
+    } else if (s.reinject) {
+      // Re-inject permanent blocks (no animation in rebuild)
+      const permanentBlocks = [
+        { type: 'system', label: 'System Prompt', preview: '(重新注入)', size: '~4K', locked: true },
+        { type: 'global-md', label: '# claudeMd → 全局 CLAUDE.md', preview: '(重新注入)', size: '~3.5K', locked: true },
+        { type: 'project-md', label: '# claudeMd → 项目 CLAUDE.md', preview: '(重新注入)', size: '~1.5K', locked: true },
+        { type: 'rules', label: 'Rules (.claude/rules/*.md)', preview: '(重新注入)', size: '~500', locked: true },
+        { type: 'mcp-def', label: 'MCP 全量加载', preview: '(重新注入)', size: '~1K', locked: true },
+        { type: 'skills', label: 'Skills 说明', preview: '(重新注入)', size: '~500', locked: true },
+        { type: 'memory', label: '# auto memory → MEMORY.md', preview: '(重新注入)', size: '~800', locked: true },
+      ];
+      permanentBlocks.forEach(cfg => {
+        const el = document.createElement('div');
+        el.className = `ctx-block type-${cfg.type}`;
+        const lockHtml = `<span class="lock-icon" style="color:currentColor">${ICONS.lock}</span>`;
+        const prevHtml = cfg.preview ? `<span class="block-preview">${cfg.preview}</span>` : '';
+        el.innerHTML = `${lockHtml}<span class="block-label"><span class="label-title">${cfg.label}</span>${prevHtml}</span><span class="block-size">${cfg.size}</span><div class="shield-overlay"></div>`;
+        el.dataset.locked = '1';
+        el.dataset.type = cfg.type;
+        el.dataset.step = i;
+        contextContainer.appendChild(el);
+        ctxBlocks.push(el);
+      });
+    } else if (s.compact) {
+      // In compact, non-locked blocks get compressed into summary
+      const toRemove = ctxBlocks.filter(el => el.dataset.locked !== '1');
+      toRemove.forEach(el => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        const idx = ctxBlocks.indexOf(el);
+        if (idx > -1) ctxBlocks.splice(idx, 1);
+      });
+      const el = document.createElement('div');
+      el.className = 'ctx-block type-compact';
+      el.innerHTML = `<span class="block-label"><span class="label-title">/compact 摘要: 课后反馈 + 点评分析 + 天气查询</span></span><span class="block-size">~2K</span><div class="shield-overlay"></div>`;
+      el.dataset.locked = '0';
+      el.dataset.type = 'compact';
+      el.dataset.step = i;
+      contextContainer.appendChild(el);
+      ctxBlocks.push(el);
+    } else if (s.ctx) {
+      const cfg = s.ctx;
+      const el = document.createElement('div');
+      let classes = `ctx-block type-${cfg.type}`;
+      if (cfg.huge) classes += ' huge';
+      else if (cfg.big) classes += ' big';
+      el.className = classes;
+      let lockHtml = cfg.locked ? `<span class="lock-icon" style="color:currentColor">${ICONS.lock}</span>` : '';
+      const prevHtml = cfg.preview ? `<span class="block-preview">${cfg.preview}</span>` : '';
+      el.innerHTML = `${lockHtml}<span class="block-label"><span class="label-title">${cfg.label}</span>${prevHtml}</span><span class="block-size">${cfg.size}</span><div class="shield-overlay"></div>`;
+      el.dataset.locked = cfg.locked ? '1' : '0';
+      el.dataset.type = cfg.type;
+      el.dataset.step = i;
+      contextContainer.appendChild(el);
+      ctxBlocks.push(el);
+    }
+
+    if (s.chat) {
+      const bub = document.createElement('div');
+      bub.className = `chat-bubble ${s.chat.role}`;
+      bub.dataset.step = i;
+      const tag = s.chat.role === 'user' ? 'You' : 'Claude';
+      bub.innerHTML = `<div class="bubble-tag">${tag}</div><div>${s.chat.text}</div>`;
+      chatMessages.appendChild(bub);
+    }
+  }
+
+  // Restore API callout state
+  const s = STEPS[targetStep];
+  if (s.showApiCallout || s.apiExecuting) {
+    showApiCallout();
+    if (s.apiExecuting) {
+      const steps = apiCallout.querySelectorAll('.api-flow-step');
+      steps.forEach(s => s.style.opacity = '0.4');
+      if (steps[1]) { steps[1].style.opacity = '1'; steps[1].style.boxShadow = '0 0 15px rgba(239,68,68,0.3)'; }
+    }
+  }
+
+  stepCounter.textContent = `${targetStep} / ${STEPS.length - 1}`;
+  stepDesc.textContent = s.desc;
+  stepDesc.style.opacity = s.desc ? '1' : '0';
+  phaseTag.textContent = s.phaseLabel;
+  phaseTag.className = `phase-tag ${s.phase}`;
+  updateQueueBar(targetStep);
+  if (s.tokens !== undefined) updateCapacity(s.tokens, s.pct, s.warning);
+  if (s.warning) contextContainer.classList.add('warning');
+  if (s.summary) summaryOverlay.classList.add('visible');
+
+  document.querySelectorAll('.source-item.active').forEach(el => el.classList.remove('active'));
+  if (s.source) {
+    const el = document.getElementById(`source-${s.source}`);
+    if (el) el.classList.add('active');
+  }
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  contextContainer.scrollTop = contextContainer.scrollHeight;
+}
+
+function dismissOverlay() {
+  if (bootOverlay.classList.contains('visible')) {
+    bootOverlay.classList.remove('visible');
+    return true;
+  }
+  if (summaryOverlay.classList.contains('visible')) {
+    summaryOverlay.classList.remove('visible');
+    return true;
+  }
+  return false;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') {
+    e.preventDefault();
+    if (dismissOverlay()) return;
+    if (currentStep < STEPS.length - 1) goToStep(currentStep + 1);
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    if (dismissOverlay()) return;
+    if (currentStep > 0) rebuildToStep(currentStep - 1);
+  } else if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    reset();
+  }
+});
+
+document.addEventListener('click', e => {
+  if (dismissOverlay()) return;
+  if (currentStep < STEPS.length - 1) goToStep(currentStep + 1);
+});
+
+init();
+</script>
 </body>
 </html>
